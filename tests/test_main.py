@@ -68,9 +68,7 @@ class TestCustomerService:
                 "updated_at": "2024-01-01T00:00:00",
             }
 
-            response = client.post(
-                "/customers", json=customer_data, headers=test_headers
-            )
+            response = client.post("/customers", json=customer_data, headers=test_headers)
             assert response.status_code == 200
             assert response.json()["first_name"] == "Test"
             assert response.json()["email"] == "test@example.com"
@@ -179,9 +177,7 @@ class TestCustomerService:
                 "updated_at": "2024-01-01T01:00:00",
             }
 
-            response = client.put(
-                "/customers/1", json=update_data, headers=test_headers
-            )
+            response = client.put("/customers/1", json=update_data, headers=test_headers)
             assert response.status_code == 200
             assert response.json()["first_name"] == "Updated"
             assert response.json()["email"] == "updated@example.com"
@@ -205,9 +201,7 @@ class TestCustomerService:
 
     def test_invalid_authentication(self):
         """Test invalid authentication"""
-        invalid_headers = {
-            "Authorization": "Basic aW52YWxpZDppbnZhbGlk"
-        }  # invalid:invalid
+        invalid_headers = {"Authorization": "Basic aW52YWxpZDppbnZhbGlk"}  # invalid:invalid
         response = client.get("/customers", headers=invalid_headers)
         assert response.status_code == 401
 

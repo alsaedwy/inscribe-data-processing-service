@@ -79,9 +79,7 @@ class DatabaseManager:
 
         return config
 
-    def _initialize_database_with_retry(
-        self, max_retries: int = 10, delay: int = 5
-    ) -> None:
+    def _initialize_database_with_retry(self, max_retries: int = 10, delay: int = 5) -> None:
         """Initialize database with retry logic for container startup"""
         for attempt in range(max_retries):
             try:
@@ -108,9 +106,7 @@ class DatabaseManager:
             connection = pymysql.connect(**config)
             connection.close()
             auth_method = "IAM" if self.use_iam_auth else "username/password"
-            logger.info(
-                f"Database connection test successful using {auth_method} authentication"
-            )
+            logger.info(f"Database connection test successful using {auth_method} authentication")
         except Exception as e:
             logger.error(f"Database connection failed: {e}")
             raise
@@ -160,9 +156,7 @@ class DatabaseManager:
                 connection.close()
 
     @contextmanager
-    def get_cursor(
-        self, dictionary: bool = True
-    ) -> Generator[pymysql.cursors.Cursor, None, None]:
+    def get_cursor(self, dictionary: bool = True) -> Generator[pymysql.cursors.Cursor, None, None]:
         """Get database cursor with automatic connection management"""
         with self.get_connection() as connection:
             cursor_class = DictCursor if dictionary else pymysql.cursors.Cursor

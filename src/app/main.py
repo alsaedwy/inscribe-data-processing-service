@@ -92,9 +92,7 @@ async def lifespan(app: FastAPI):
         else:
             logger.warning("Database setup had some issues, but continuing...")
     except Exception as e:
-        logger.warning(
-            f"Database setup failed: {e}, continuing with standard initialization..."
-        )
+        logger.warning(f"Database setup failed: {e}, continuing with standard initialization...")
 
     # Initialize database
     try:
@@ -157,9 +155,7 @@ def create_app() -> FastAPI:
                     "error": str(e),
                 },
             )
-            return JSONResponse(
-                status_code=500, content={"detail": "Internal server error"}
-            )
+            return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
         # Log request completion
         duration_ms = (time.time() - start_time) * 1000
@@ -184,9 +180,7 @@ def create_app() -> FastAPI:
         response.headers["X-XSS-Protection"] = "1; mode=block"
 
         if settings.is_production:
-            response.headers["Strict-Transport-Security"] = (
-                "max-age=31536000; includeSubDomains"
-            )
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
 
         return response
 
@@ -274,9 +268,7 @@ def create_app() -> FastAPI:
             )
 
     @app.get("/customers/{customer_id}", response_model=CustomerResponse)
-    async def legacy_get_customer(
-        customer_id: int, username: str = Depends(authenticate_simple)
-    ):
+    async def legacy_get_customer(customer_id: int, username: str = Depends(authenticate_simple)):
         """Legacy get customer endpoint"""
         try:
             select_sql = "SELECT * FROM customers WHERE id = %s"

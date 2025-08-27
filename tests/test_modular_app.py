@@ -81,9 +81,7 @@ class TestCustomerEndpoints:
                 "updated_at": datetime.now(),
             }
 
-            response = client.post(
-                "/api/v1/customers", json=customer_data, headers=test_headers
-            )
+            response = client.post("/api/v1/customers", json=customer_data, headers=test_headers)
             assert response.status_code == 201
             data = response.json()
             assert data["first_name"] == "John"
@@ -98,9 +96,7 @@ class TestCustomerEndpoints:
             "email": "invalid-email",  # Invalid email format
         }
 
-        response = client.post(
-            "/api/v1/customers", json=invalid_data, headers=test_headers
-        )
+        response = client.post("/api/v1/customers", json=invalid_data, headers=test_headers)
         assert response.status_code == 422
 
     def test_get_customers_success(self):
@@ -177,9 +173,7 @@ class TestCustomerEndpoints:
             }
             mock_update.return_value = mock_customer
 
-            response = client.put(
-                "/api/v1/customers/1", json=update_data, headers=test_headers
-            )
+            response = client.put("/api/v1/customers/1", json=update_data, headers=test_headers)
             assert response.status_code == 200
             data = response.json()
             assert data["first_name"] == "Updated"
@@ -203,9 +197,7 @@ class TestCustomerEndpoints:
 
     def test_invalid_authentication(self):
         """Test invalid authentication"""
-        invalid_headers = {
-            "Authorization": "Basic aW52YWxpZDppbnZhbGlk"
-        }  # invalid:invalid
+        invalid_headers = {"Authorization": "Basic aW52YWxpZDppbnZhbGlk"}  # invalid:invalid
         response = client.get("/api/v1/customers", headers=invalid_headers)
         assert response.status_code == 401
 
@@ -219,9 +211,7 @@ class TestCustomerService:
             first_name="Jane", last_name="Smith", email="jane@example.com"
         )
 
-        with patch(
-            "app.services.customer_service.db_manager.get_cursor"
-        ) as mock_get_cursor:
+        with patch("app.services.customer_service.db_manager.get_cursor") as mock_get_cursor:
             mock_cursor = MagicMock()
             mock_get_cursor.return_value.__enter__.return_value = mock_cursor
 
@@ -292,9 +282,7 @@ class TestDatabaseManager:
 
         # Create a DatabaseManager instance for testing
         with patch("app.database.manager.db_manager") as mock_db_manager:
-            mock_db_manager.get_connection.return_value.__enter__.return_value = (
-                mock_connection
-            )
+            mock_db_manager.get_connection.return_value.__enter__.return_value = mock_connection
 
             with mock_db_manager.get_connection() as conn:
                 assert conn == mock_connection
@@ -339,9 +327,7 @@ class TestSecurityFeatures:
         }
 
         # The malicious input should be rejected by validation
-        response = client.post(
-            "/api/v1/customers", json=malicious_data, headers=test_headers
-        )
+        response = client.post("/api/v1/customers", json=malicious_data, headers=test_headers)
         # Should be rejected with validation error due to invalid characters
         assert response.status_code == 422
 
