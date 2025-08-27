@@ -5,7 +5,6 @@ This module handles the creation of IAM database users on first startup.
 
 import logging
 import os
-from typing import Optional
 
 import pymysql
 
@@ -73,12 +72,14 @@ class DatabaseSetup:
 
                     # Create user with AWS IAM authentication
                     cursor.execute(
-                        f"CREATE USER '{self.iam_username}'@'%' IDENTIFIED WITH AWSAuthenticationPlugin AS 'RDS'"
+                        f"CREATE USER '{self.iam_username}'@'%' "
+                        f"IDENTIFIED WITH AWSAuthenticationPlugin AS 'RDS'"
                     )
 
                     # Grant necessary permissions
                     cursor.execute(
-                        f"GRANT SELECT, INSERT, UPDATE, DELETE ON {self.database_name}.* TO '{self.iam_username}'@'%'"
+                        f"GRANT SELECT, INSERT, UPDATE, DELETE ON "
+                        f"{self.database_name}.* TO '{self.iam_username}'@'%'"
                     )
 
                     # Flush privileges
@@ -86,7 +87,8 @@ class DatabaseSetup:
 
                     connection.commit()
                     logger.info(
-                        f"Successfully created IAM database user '{self.iam_username}'"
+                        f"Successfully created IAM database user "
+                        f"'{self.iam_username}'"
                     )
                     return True
 
@@ -121,8 +123,8 @@ class DatabaseSetup:
                     # Check if customers table exists
                     cursor.execute(
                         """
-                        SELECT COUNT(*) as count 
-                        FROM information_schema.tables 
+                        SELECT COUNT(*) as count
+                        FROM information_schema.tables
                         WHERE table_schema = %s AND table_name = 'customers'
                     """,
                         (self.database_name,),
@@ -146,10 +148,12 @@ class DatabaseSetup:
                             address TEXT,
                             date_of_birth DATE,
                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                                ON UPDATE CURRENT_TIMESTAMP,
                             INDEX idx_email (email),
                             INDEX idx_name (last_name, first_name)
-                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                        COLLATE=utf8mb4_unicode_ci
                     """
                     )
 

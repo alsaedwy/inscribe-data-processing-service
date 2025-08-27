@@ -6,7 +6,7 @@ import base64
 import os
 import sys
 from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -14,12 +14,10 @@ from fastapi.testclient import TestClient
 # Add src directory to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from app.database.manager import DatabaseManager
-
 # Import the new modular components
-from app.main import app
-from app.schemas.customer import CustomerCreate, CustomerResponse, CustomerUpdate
-from app.services.customer_service import CustomerService
+from app.main import app  # noqa: E402
+from app.schemas.customer import CustomerCreate, CustomerUpdate  # noqa: E402
+from app.services.customer_service import CustomerService  # noqa: E402
 
 # Test client
 client = TestClient(app)
@@ -321,7 +319,7 @@ class TestDatabaseManager:
 
             # This will test the retry logic in the initialization
             try:
-                db_manager = DatabaseManager()
+                DatabaseManager()
                 # If we get here, the retry worked
                 assert mock_connect.call_count >= 1
             except Exception:

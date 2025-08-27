@@ -6,9 +6,9 @@ import secrets
 import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import List
 
-from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
+from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
@@ -333,7 +333,7 @@ def create_app() -> FastAPI:
                 )
 
             update_sql = f"""
-            UPDATE customers 
+            UPDATE customers
             SET {', '.join(update_fields)}, updated_at = CURRENT_TIMESTAMP
             WHERE id = %s
             """

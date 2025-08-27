@@ -4,7 +4,7 @@ Database connection and management with IAM authentication support
 
 import time
 from contextlib import contextmanager
-from typing import Any, Dict, Generator, Optional
+from typing import Any, Dict, Generator
 
 import pymysql
 from pymysql.cursors import DictCursor
@@ -96,7 +96,8 @@ class DatabaseManager:
                     time.sleep(delay)
                 else:
                     logger.error(
-                        "Max database connection retries reached. Starting without database connection."
+                        "Max database connection retries reached. "
+                        "Starting without database connection."
                     )
                     # Don't raise exception - let the app start and handle DB errors per request
 

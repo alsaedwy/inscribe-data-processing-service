@@ -13,7 +13,7 @@ from fastapi.testclient import TestClient
 # Add src directory to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from app.main import DatabaseManager, app
+from app.main import app  # noqa: E402
 
 # Test client
 client = TestClient(app)

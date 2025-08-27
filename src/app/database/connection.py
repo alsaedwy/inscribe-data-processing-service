@@ -10,7 +10,7 @@ import logging
 import os
 import time
 from contextlib import contextmanager
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 import boto3
 import pymysql
@@ -207,10 +207,6 @@ class IAMAuth:
 
     # Benefits of this approach:
     # - No static passwords
-    # - Automatic token expiration (15 minutes)
-    # - Uses IAM roles for authentication
-    # - Centralized access control through IAM
-    # - Audit trail through CloudTrail
 
 
 # Usage example for deployment configuration:
@@ -246,31 +242,3 @@ def get_database_manager():
 # - Uses IAM roles for authentication
 # - Centralized access control through IAM
 # - Audit trail through CloudTrail
-
-
-# Usage example for deployment configuration:
-def get_database_manager():
-    """Factory function to get appropriate database manager"""
-    use_iam = os.getenv("USE_IAM_AUTH", "false").lower() == "true"
-
-    if use_iam:
-        logger.info("Initializing database with IAM authentication")
-        return DatabaseConnection()  # Will use IAM auth based on environment
-    else:
-        logger.info("Initializing database with traditional authentication")
-        return DatabaseConnection()  # Will use username/password
-
-
-# Environment variable examples:
-# Traditional auth:
-# DB_HOST=my-rds.amazonaws.com
-# DB_USER=dbadmin
-# DB_PASSWORD=secret123
-# USE_IAM_AUTH=false
-
-# IAM auth:
-# DB_HOST=my-rds.amazonaws.com
-# IAM_DB_USER=iam_app_user
-# USE_IAM_AUTH=true
-# AWS_REGION=eu-west-1
-# (No DB_PASSWORD needed!)

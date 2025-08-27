@@ -5,11 +5,10 @@ Customer business logic and database operations
 from typing import Any, Dict, List, Optional
 
 import pymysql
-from pymysql.cursors import DictCursor
 
 from app.core.logging import get_logger
 from app.database.manager import db_manager
-from app.schemas.customer import CustomerCreate, CustomerResponse, CustomerUpdate
+from app.schemas.customer import CustomerCreate, CustomerUpdate
 
 logger = get_logger(__name__)
 
@@ -70,8 +69,8 @@ class CustomerService:
             limit = 1000  # Prevent excessive data retrieval
 
         select_sql = """
-        SELECT * FROM customers 
-        ORDER BY created_at DESC 
+        SELECT * FROM customers
+        ORDER BY created_at DESC
         LIMIT %s OFFSET %s
         """
 
@@ -127,7 +126,7 @@ class CustomerService:
             raise ValueError("No fields to update")
 
         update_sql = f"""
-        UPDATE customers 
+        UPDATE customers
         SET {', '.join(update_fields)}, updated_at = CURRENT_TIMESTAMP
         WHERE id = %s
         """

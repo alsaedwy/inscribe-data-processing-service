@@ -94,9 +94,14 @@ class TextFormatter(logging.Formatter):
         if DATADOG_AVAILABLE:
             span = tracer.current_span()
             if span:
-                trace_info = f" [trace_id={span.trace_id} span_id={span.span_id}]"
+                trace_info = (
+                    f" [trace_id={span.trace_id} span_id={span.span_id}]"
+                )
 
-        base_message = f"{timestamp} - {record.name} - {record.levelname}{trace_info} - {record.getMessage()}"
+        base_message = (
+            f"{timestamp} - {record.name} - {record.levelname}"
+            f"{trace_info} - {record.getMessage()}"
+        )
 
         if record.exc_info:
             base_message += "\n" + self.formatException(record.exc_info)
