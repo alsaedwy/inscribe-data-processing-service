@@ -2,22 +2,24 @@
 Unit tests for the Inscribe Customer Data Service - Modular Architecture
 """
 
-import pytest
-import sys
-import os
-from unittest.mock import patch, MagicMock, AsyncMock
-from fastapi.testclient import TestClient
 import base64
+import os
+import sys
 from datetime import datetime
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+from fastapi.testclient import TestClient
 
 # Add src directory to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
+from app.database.manager import DatabaseManager
 # Import the new modular components
 from app.main import app
-from app.schemas.customer import CustomerCreate, CustomerUpdate, CustomerResponse
+from app.schemas.customer import (CustomerCreate, CustomerResponse,
+                                  CustomerUpdate)
 from app.services.customer_service import CustomerService
-from app.database.manager import DatabaseManager
 
 # Test client
 client = TestClient(app)

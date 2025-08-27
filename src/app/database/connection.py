@@ -6,13 +6,14 @@ This module demonstrates the evolution from username/password to IAM authenticat
 2. IAM: Uses temporary tokens generated from IAM credentials (secure)
 """
 
+import logging
 import os
+import time
+from contextlib import contextmanager
+from typing import Any, Dict, Optional
+
 import boto3
 import pymysql
-import logging
-from contextlib import contextmanager
-from typing import Dict, Any, Optional
-import time
 
 logger = logging.getLogger(__name__)
 

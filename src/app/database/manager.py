@@ -4,7 +4,7 @@ Database connection and management with IAM authentication support
 
 import time
 from contextlib import contextmanager
-from typing import Generator, Dict, Any, Optional
+from typing import Any, Dict, Generator, Optional
 
 import pymysql
 from pymysql.cursors import DictCursor

@@ -3,8 +3,9 @@ AWS Secrets Manager integration for secure credential management
 """
 
 import json
+from typing import Any, Dict, Optional
+
 import boto3
-from typing import Dict, Any, Optional
 from botocore.exceptions import ClientError
 
 from app.core.logging import get_logger
@@ -226,6 +227,7 @@ def load_secrets_into_environment():
     This function can be called during application startup
     """
     import os
+
     from app.core.config import settings
 
     try:

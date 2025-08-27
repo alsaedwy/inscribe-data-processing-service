@@ -6,10 +6,10 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException, status
 
-from app.schemas.customer import HealthResponse
-from app.services.customer_service import CustomerService
 from app.core.config import settings
 from app.core.logging import get_logger
+from app.schemas.customer import HealthResponse
+from app.services.customer_service import CustomerService
 
 logger = get_logger(__name__)
 router = APIRouter(tags=["health"])

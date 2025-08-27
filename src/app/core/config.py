@@ -3,8 +3,9 @@ Configuration management for the Inscribe Customer Data Service
 """
 
 import os
-from typing import Optional, List
-from pydantic import Field, field_validator, ConfigDict
+from typing import List, Optional
+
+from pydantic import ConfigDict, Field, field_validator
 from pydantic_settings import BaseSettings
 
 

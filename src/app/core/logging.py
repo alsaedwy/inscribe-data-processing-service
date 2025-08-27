@@ -2,12 +2,12 @@
 Enhanced logging configuration with Datadog integration
 """
 
+import json
 import logging
 import sys
-import json
 import traceback
 from datetime import datetime, timezone
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 from app.core.config import settings
 

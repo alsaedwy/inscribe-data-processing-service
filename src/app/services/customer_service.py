@@ -2,14 +2,15 @@
 Customer business logic and database operations
 """
 
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
 
 import pymysql
 from pymysql.cursors import DictCursor
 
-from app.database.manager import db_manager
-from app.schemas.customer import CustomerCreate, CustomerUpdate, CustomerResponse
 from app.core.logging import get_logger
+from app.database.manager import db_manager
+from app.schemas.customer import (CustomerCreate, CustomerResponse,
+                                  CustomerUpdate)
 
 logger = get_logger(__name__)
 

@@ -2,30 +2,28 @@
 FastAPI application factory for Inscribe Customer Data Service
 """
 
+import secrets
 import time
-from datetime import datetime, timezone
 from contextlib import asynccontextmanager
-from typing import List, Dict, Any, Optional
-from fastapi import FastAPI, Request, Response, HTTPException, Depends, status
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+
+from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
-import secrets
 
-from app.core.config import settings
-from app.core.logging import (
-    setup_logging,
-    get_logger,
-    log_request_start,
-    log_request_end,
-    log_application_startup,
-    log_application_shutdown,
-)
-from app.core.secure_credentials import load_credentials_at_startup
-from app.core.db_setup import run_database_setup
 from app.api import api_router
-from app.database.manager import DatabaseManager as ModularDatabaseManager, db_manager
-from app.schemas.customer import CustomerCreate, CustomerUpdate, CustomerResponse
+from app.core.config import settings
+from app.core.db_setup import run_database_setup
+from app.core.logging import (get_logger, log_application_shutdown,
+                              log_application_startup, log_request_end,
+                              log_request_start, setup_logging)
+from app.core.secure_credentials import load_credentials_at_startup
+from app.database.manager import DatabaseManager as ModularDatabaseManager
+from app.database.manager import db_manager
+from app.schemas.customer import (CustomerCreate, CustomerResponse,
+                                  CustomerUpdate)
 
 # Import Datadog if available
 try:

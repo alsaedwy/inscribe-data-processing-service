@@ -3,10 +3,11 @@ Database setup utilities for IAM authentication.
 This module handles the creation of IAM database users on first startup.
 """
 
-import os
 import logging
-import pymysql
+import os
 from typing import Optional
+
+import pymysql
 
 logger = logging.getLogger(__name__)
 

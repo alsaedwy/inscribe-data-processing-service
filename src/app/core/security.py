@@ -3,7 +3,8 @@ Authentication and security utilities
 """
 
 import secrets
-from fastapi import HTTPException, Depends, status
+
+from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 from app.core.config import settings

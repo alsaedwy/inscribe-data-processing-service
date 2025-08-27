@@ -5,17 +5,13 @@ Customer API endpoints
 from datetime import datetime
 from typing import List
 
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.schemas.customer import (
-    CustomerCreate,
-    CustomerUpdate,
-    CustomerResponse,
-    MessageResponse,
-)
-from app.services.customer_service import CustomerService
-from app.core.security import authenticate
 from app.core.logging import get_logger
+from app.core.security import authenticate
+from app.schemas.customer import (CustomerCreate, CustomerResponse,
+                                  CustomerUpdate, MessageResponse)
+from app.services.customer_service import CustomerService
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/customers", tags=["customers"])

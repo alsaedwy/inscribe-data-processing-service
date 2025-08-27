@@ -2,17 +2,18 @@
 Unit tests for the Inscribe Customer Data Service
 """
 
-import pytest
-import sys
-import os
-from unittest.mock import patch, MagicMock
-from fastapi.testclient import TestClient
 import base64
+import os
+import sys
+from unittest.mock import MagicMock, patch
+
+import pytest
+from fastapi.testclient import TestClient
 
 # Add src directory to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from app.main import app, DatabaseManager
+from app.main import DatabaseManager, app
 
 # Test client
 client = TestClient(app)

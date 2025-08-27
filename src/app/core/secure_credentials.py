@@ -2,11 +2,12 @@
 Secure credential loader that retrieves secrets from AWS Secrets Manager at runtime
 """
 
-import os
-import boto3
 import json
 import logging
-from typing import Optional, Dict, Any
+import os
+from typing import Any, Dict, Optional
+
+import boto3
 from botocore.exceptions import ClientError, NoCredentialsError
 
 logger = logging.getLogger(__name__)
