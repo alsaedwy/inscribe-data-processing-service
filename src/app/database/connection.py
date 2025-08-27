@@ -5,6 +5,7 @@ This module demonstrates the evolution from username/password to IAM authenticat
 1. Traditional: Uses static username/password (security risk)
 2. IAM: Uses temporary tokens generated from IAM credentials (secure)
 """
+
 import os
 import boto3
 import pymysql
@@ -18,60 +19,58 @@ logger = logging.getLogger(__name__)
 
 class DatabaseConnection:
     """Enhanced database manager supporting both traditional and IAM authentication"""
-    
+
     def __init__(self):
-        self.db_host = os.getenv('DB_HOST', 'localhost')
-        self.db_port = int(os.getenv('DB_PORT', 3306))
-        self.db_name = os.getenv('DB_NAME', 'inscribe_customers')
-        self.db_user = os.getenv('DB_USER', 'admin')
-        self.db_password = os.getenv('DB_PASSWORD', 'password')
-        
+        self.db_host = os.getenv("DB_HOST", "localhost")
+        self.db_port = int(os.getenv("DB_PORT", 3306))
+        self.db_name = os.getenv("DB_NAME", "inscribe_customers")
+        self.db_user = os.getenv("DB_USER", "admin")
+        self.db_password = os.getenv("DB_PASSWORD", "password")
+
         # IAM Authentication settings
-        self.use_iam_auth = os.getenv('USE_IAM_AUTH', 'false').lower() == 'true'
-        self.iam_db_user = os.getenv('IAM_DB_USER', 'iam_app_user')
-        self.aws_region = os.getenv('AWS_REGION', 'eu-west-1')
-        
+        self.use_iam_auth = os.getenv("USE_IAM_AUTH", "false").lower() == "true"
+        self.iam_db_user = os.getenv("IAM_DB_USER", "iam_app_user")
+        self.aws_region = os.getenv("AWS_REGION", "eu-west-1")
+
         # Initialize RDS client for IAM tokens (only if IAM auth is enabled)
         if self.use_iam_auth:
-            self.rds_client = boto3.client('rds', region_name=self.aws_region)
-        
+            self.rds_client = boto3.client("rds", region_name=self.aws_region)
+
         self._initialize_database_with_retry()
-    
+
     def _get_connection_config(self) -> Dict[str, Any]:
         """Get database connection configuration based on authentication method"""
-        
+
         base_config = {
-            'host': self.db_host,
-            'port': self.db_port,
-            'database': self.db_name,
-            'charset': 'utf8mb4',
-            'autocommit': True
+            "host": self.db_host,
+            "port": self.db_port,
+            "database": self.db_name,
+            "charset": "utf8mb4",
+            "autocommit": True,
         }
-        
+
         if self.use_iam_auth:
             # IAM Authentication: Generate temporary token
             logger.info("Using IAM database authentication")
             token = self._generate_iam_token()
-            
+
             config = {
                 **base_config,
-                'user': self.iam_db_user,
-                'password': token,
-                'ssl': {'ssl_ca': '/opt/amazon-rds-ca-cert.pem'},  # Required for IAM auth
-                'ssl_disabled': False,
-                'connect_timeout': 60
+                "user": self.iam_db_user,
+                "password": token,
+                "ssl": {
+                    "ssl_ca": "/opt/amazon-rds-ca-cert.pem"
+                },  # Required for IAM auth
+                "ssl_disabled": False,
+                "connect_timeout": 60,
             }
         else:
             # Traditional Authentication: Static username/password
             logger.info("Using traditional username/password authentication")
-            config = {
-                **base_config,
-                'user': self.db_user,
-                'password': self.db_password
-            }
-        
+            config = {**base_config, "user": self.db_user, "password": self.db_password}
+
         return config
-    
+
     def _generate_iam_token(self) -> str:
         """Generate IAM authentication token for RDS"""
         try:
@@ -80,14 +79,14 @@ class DatabaseConnection:
                 DBHostname=self.db_host,
                 Port=self.db_port,
                 DBUsername=self.iam_db_user,
-                Region=self.aws_region
+                Region=self.aws_region,
             )
             logger.debug("IAM authentication token generated successfully")
             return token
         except Exception as e:
             logger.error(f"Failed to generate IAM authentication token: {e}")
             raise
-    
+
     def _initialize_database_with_retry(self, max_retries=10, delay=5):
         """Initialize database with retry logic for container startup"""
         for attempt in range(max_retries):
@@ -104,7 +103,7 @@ class DatabaseConnection:
                 else:
                     logger.error("Max database connection retries reached.")
                     raise
-    
+
     def _test_connection(self):
         """Test database connection"""
         try:
@@ -115,7 +114,7 @@ class DatabaseConnection:
         except Exception as e:
             logger.error(f"Database connection failed: {e}")
             raise
-    
+
     def _initialize_database(self):
         """Initialize database tables"""
         create_table_sql = """
@@ -133,7 +132,7 @@ class DatabaseConnection:
             INDEX idx_last_name (last_name)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         """
-        
+
         try:
             with self.get_connection() as connection:
                 with connection.cursor() as cursor:
@@ -142,7 +141,7 @@ class DatabaseConnection:
         except Exception as e:
             logger.error(f"Database initialization failed: {e}")
             raise
-    
+
     @contextmanager
     def get_connection(self):
         """Get database connection with proper error handling and cleanup"""
@@ -163,17 +162,18 @@ class DatabaseConnection:
 
 # For comparison, here's how the authentication methods differ:
 
+
 class TraditionalAuth:
     """Traditional username/password authentication (less secure)"""
-    
+
     def get_config(self):
         return {
-            'host': 'my-rds-instance.amazonaws.com',
-            'user': 'dbadmin',
-            'password': 'MySecretPassword123!',  # Static password - security risk!
-            'database': 'myapp'
+            "host": "my-rds-instance.amazonaws.com",
+            "user": "dbadmin",
+            "password": "MySecretPassword123!",  # Static password - security risk!
+            "database": "myapp",
         }
-    
+
     # Issues with this approach:
     # - Password stored in environment variables or code
     # - No automatic rotation
@@ -183,27 +183,27 @@ class TraditionalAuth:
 
 class IAMAuth:
     """IAM token-based authentication (more secure)"""
-    
+
     def __init__(self):
-        self.rds_client = boto3.client('rds')
-    
+        self.rds_client = boto3.client("rds")
+
     def get_config(self):
         # Generate short-lived token (15 minutes)
         token = self.rds_client.generate_db_auth_token(
-            DBHostname='my-rds-instance.amazonaws.com',
+            DBHostname="my-rds-instance.amazonaws.com",
             Port=3306,
-            DBUsername='iam_app_user',
-            Region='eu-west-1'
+            DBUsername="iam_app_user",
+            Region="eu-west-1",
         )
-        
+
         return {
-            'host': 'my-rds-instance.amazonaws.com',
-            'user': 'iam_app_user',
-            'password': token,  # Temporary token, expires in 15 minutes
-            'database': 'myapp',
-            'ssl': {'ssl_ca': '/opt/amazon-rds-ca-cert.pem'}
+            "host": "my-rds-instance.amazonaws.com",
+            "user": "iam_app_user",
+            "password": token,  # Temporary token, expires in 15 minutes
+            "database": "myapp",
+            "ssl": {"ssl_ca": "/opt/amazon-rds-ca-cert.pem"},
         }
-    
+
     # Benefits of this approach:
     # - No static passwords
     # - Automatic token expiration (15 minutes)
@@ -215,8 +215,8 @@ class IAMAuth:
 # Usage example for deployment configuration:
 def get_database_manager():
     """Factory function to get appropriate database manager"""
-    use_iam = os.getenv('USE_IAM_AUTH', 'false').lower() == 'true'
-    
+    use_iam = os.getenv("USE_IAM_AUTH", "false").lower() == "true"
+
     if use_iam:
         logger.info("Initializing database with IAM authentication")
         return DatabaseConnection()  # Will use IAM auth based on environment
@@ -228,7 +228,7 @@ def get_database_manager():
 # Environment variable examples:
 # Traditional auth:
 # DB_HOST=my-rds.amazonaws.com
-# DB_USER=dbadmin  
+# DB_USER=dbadmin
 # DB_PASSWORD=secret123
 # USE_IAM_AUTH=false
 
@@ -238,20 +238,20 @@ def get_database_manager():
 # USE_IAM_AUTH=true
 # AWS_REGION=eu-west-1
 # (No DB_PASSWORD needed!)
-    
-    # Benefits of this approach:
-    # - No static passwords
-    # - Automatic token expiration (15 minutes)
-    # - Uses IAM roles for authentication
-    # - Centralized access control through IAM
-    # - Audit trail through CloudTrail
+
+# Benefits of this approach:
+# - No static passwords
+# - Automatic token expiration (15 minutes)
+# - Uses IAM roles for authentication
+# - Centralized access control through IAM
+# - Audit trail through CloudTrail
 
 
 # Usage example for deployment configuration:
 def get_database_manager():
     """Factory function to get appropriate database manager"""
-    use_iam = os.getenv('USE_IAM_AUTH', 'false').lower() == 'true'
-    
+    use_iam = os.getenv("USE_IAM_AUTH", "false").lower() == "true"
+
     if use_iam:
         logger.info("Initializing database with IAM authentication")
         return DatabaseConnection()  # Will use IAM auth based on environment
@@ -263,7 +263,7 @@ def get_database_manager():
 # Environment variable examples:
 # Traditional auth:
 # DB_HOST=my-rds.amazonaws.com
-# DB_USER=dbadmin  
+# DB_USER=dbadmin
 # DB_PASSWORD=secret123
 # USE_IAM_AUTH=false
 

@@ -15,6 +15,7 @@ from app.core.logging import get_logger
 # Import boto3 for IAM authentication if available
 try:
     import boto3
+
     BOTO3_AVAILABLE = True
 except ImportError:
     BOTO3_AVAILABLE = False
@@ -24,14 +25,14 @@ logger = get_logger(__name__)
 
 class DatabaseManager:
     """Secure database manager with connection pooling and IAM authentication support"""
-    
+
     def __init__(self):
         self.use_iam_auth = settings.use_iam_auth
         self.base_config = settings.database_config
-        
+
         # Initialize RDS client for IAM token generation if needed
         if self.use_iam_auth and BOTO3_AVAILABLE:
-            self.rds_client = boto3.client('rds', region_name=settings.aws_region)
+            self.rds_client = boto3.client("rds", region_name=settings.aws_region)
             logger.info("IAM database authentication enabled")
         elif self.use_iam_auth and not BOTO3_AVAILABLE:
             logger.error("IAM authentication requested but boto3 not available")
@@ -39,44 +40,48 @@ class DatabaseManager:
         else:
             self.rds_client = None
             logger.info("Using traditional database authentication")
-            
+
         self._initialize_database_with_retry()
-    
+
     def _generate_iam_token(self) -> str:
         """Generate IAM authentication token for RDS"""
         if not self.rds_client:
             raise RuntimeError("RDS client not initialized for IAM authentication")
-        
+
         try:
             # Generate token valid for 15 minutes
             token = self.rds_client.generate_db_auth_token(
                 DBHostname=settings.db_host,
                 Port=settings.db_port,
                 DBUsername=settings.iam_db_user,
-                Region=settings.aws_region
+                Region=settings.aws_region,
             )
             logger.debug("IAM authentication token generated successfully")
             return token
         except Exception as e:
             logger.error(f"Failed to generate IAM authentication token: {e}")
             raise
-    
+
     def _get_connection_config(self) -> Dict[str, Any]:
         """Get database connection configuration with authentication"""
         config = self.base_config.copy()
-        
+
         if self.use_iam_auth:
             # Generate fresh IAM token for each connection
             token = self._generate_iam_token()
-            config.update({
-                'password': token,
-                'ssl': {'ssl_ca': '/opt/amazon-rds-ca-cert.pem'},
-                'ssl_disabled': False
-            })
-        
+            config.update(
+                {
+                    "password": token,
+                    "ssl": {"ssl_ca": "/opt/amazon-rds-ca-cert.pem"},
+                    "ssl_disabled": False,
+                }
+            )
+
         return config
-    
-    def _initialize_database_with_retry(self, max_retries: int = 10, delay: int = 5) -> None:
+
+    def _initialize_database_with_retry(
+        self, max_retries: int = 10, delay: int = 5
+    ) -> None:
         """Initialize database with retry logic for container startup"""
         for attempt in range(max_retries):
             try:
@@ -90,9 +95,11 @@ class DatabaseManager:
                     logger.info(f"Retrying in {delay} seconds...")
                     time.sleep(delay)
                 else:
-                    logger.error("Max database connection retries reached. Starting without database connection.")
+                    logger.error(
+                        "Max database connection retries reached. Starting without database connection."
+                    )
                     # Don't raise exception - let the app start and handle DB errors per request
-    
+
     def _test_connection(self) -> None:
         """Test database connection"""
         try:
@@ -100,11 +107,13 @@ class DatabaseManager:
             connection = pymysql.connect(**config)
             connection.close()
             auth_method = "IAM" if self.use_iam_auth else "username/password"
-            logger.info(f"Database connection test successful using {auth_method} authentication")
+            logger.info(
+                f"Database connection test successful using {auth_method} authentication"
+            )
         except Exception as e:
             logger.error(f"Database connection failed: {e}")
             raise
-    
+
     def _initialize_database(self) -> None:
         """Initialize database tables"""
         create_table_sql = """
@@ -122,7 +131,7 @@ class DatabaseManager:
             INDEX idx_last_name (last_name)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         """
-        
+
         try:
             with self.get_connection() as connection:
                 with connection.cursor() as cursor:
@@ -131,7 +140,7 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Database initialization failed: {e}")
             raise
-    
+
     @contextmanager
     def get_connection(self) -> Generator[pymysql.Connection, None, None]:
         """Get database connection with automatic cleanup and IAM token refresh"""
@@ -148,9 +157,11 @@ class DatabaseManager:
         finally:
             if connection:
                 connection.close()
-    
+
     @contextmanager
-    def get_cursor(self, dictionary: bool = True) -> Generator[pymysql.cursors.Cursor, None, None]:
+    def get_cursor(
+        self, dictionary: bool = True
+    ) -> Generator[pymysql.cursors.Cursor, None, None]:
         """Get database cursor with automatic connection management"""
         with self.get_connection() as connection:
             cursor_class = DictCursor if dictionary else pymysql.cursors.Cursor

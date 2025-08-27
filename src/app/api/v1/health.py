@@ -20,26 +20,25 @@ async def health_check():
     """Health check endpoint"""
     try:
         database_healthy = CustomerService.check_database_health()
-        
+
         if not database_healthy:
             logger.error("Health check failed: database not accessible")
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Service unhealthy - database connection failed"
+                detail="Service unhealthy - database connection failed",
             )
-        
+
         return HealthResponse(
             status="healthy",
             timestamp=datetime.now(timezone.utc).isoformat(),
             service=settings.app_name,
             version=settings.version,
-            database="connected"
+            database="connected",
         )
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Health check failed: {e}")
         raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Service unhealthy"
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Service unhealthy"
         )
