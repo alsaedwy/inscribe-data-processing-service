@@ -1,8 +1,8 @@
 version: 2.1
 
 orbs:
-  docker: circleci/docker@2.4.0
-  aws-cli: circleci/aws-cli@4.0
+  docker: circleci/docker@3.0.0
+  aws-cli: circleci/aws-cli@5.4.1
 
 executors:
   python-executor:
@@ -45,7 +45,7 @@ jobs:
             echo "Running Black formatter check..."
             black --check src/ tests/ || (echo "Code formatting issues found. Run 'black src/ tests/' to fix." && exit 1)
             echo "Running isort import sorting check..."
-            isort --check-only src/ tests/ || (echo "Import sorting issues found. Run 'isort src/ tests/' to fix." && exit 1)
+            isort --profile black --check-only src/ tests/ || (echo "Import sorting issues found. Run 'isort src/ tests/' to fix." && exit 1)
             echo "Running flake8 linting..."
             flake8 src/ tests/ --max-line-length=100 --extend-ignore=E203,W503
             echo "Running mypy type checking..."
@@ -103,17 +103,32 @@ jobs:
       - checkout
       - setup_remote_docker:
           version: 20.10.18
+      - aws-cli/setup
       
-      - docker/check:
-          docker-username: DOCKERHUB_USERNAME
-          docker-password: DOCKERHUB_PASSWORD
+      - run:
+          name: Get ECR repository information
+          command: |
+            cd terraform
+            terraform init -input=false
+            ECR_REPOSITORY_URL=$(terraform output -raw ecr_repository_url)
+            ECR_REGISTRY_ID=$(terraform output -raw ecr_registry_id)
+            echo "export ECR_REPOSITORY_URL=$ECR_REPOSITORY_URL" >> $BASH_ENV
+            echo "export ECR_REGISTRY_ID=$ECR_REGISTRY_ID" >> $BASH_ENV
+            echo "ECR Repository URL: $ECR_REPOSITORY_URL"
+      
+      - run:
+          name: Login to Amazon ECR
+          command: |
+            source $BASH_ENV
+            aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
       
       - run:
           name: Build Docker image
           command: |
-            echo "Building Docker image with tag: inscribe/customer-data-service:${CIRCLE_SHA1}"
-            docker build -t inscribe/customer-data-service:${CIRCLE_SHA1} .
-            docker tag inscribe/customer-data-service:${CIRCLE_SHA1} inscribe/customer-data-service:latest
+            source $BASH_ENV
+            echo "Building Docker image with tag: ${ECR_REPOSITORY_URL}:${CIRCLE_SHA1}"
+            docker build -t ${ECR_REPOSITORY_URL}:${CIRCLE_SHA1} .
+            docker tag ${ECR_REPOSITORY_URL}:${CIRCLE_SHA1} ${ECR_REPOSITORY_URL}:latest
             
             # Test the built image
             echo "Testing Docker image..."
@@ -123,7 +138,7 @@ jobs:
               -e DB_NAME=test \
               -e DB_USER=test \
               -e DB_PASSWORD=test \
-              inscribe/customer-data-service:${CIRCLE_SHA1} &
+              ${ECR_REPOSITORY_URL}:${CIRCLE_SHA1} &
             
             # Wait for container to start
             sleep 10
@@ -135,23 +150,82 @@ jobs:
       - run:
           name: Run container security scan
           command: |
+            source $BASH_ENV
             # Install Trivy for container scanning
             curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
             echo "Running container security scan..."
             trivy image --exit-code 0 --severity HIGH,CRITICAL \
               --format json --output trivy-report.json \
-              inscribe/customer-data-service:${CIRCLE_SHA1}
+              ${ECR_REPOSITORY_URL}:${CIRCLE_SHA1}
             
             # Also generate readable format
-            trivy image --severity HIGH,CRITICAL inscribe/customer-data-service:${CIRCLE_SHA1}
+            trivy image --severity HIGH,CRITICAL ${ECR_REPOSITORY_URL}:${CIRCLE_SHA1}
+      
+      - run:
+          name: Push images to ECR
+          command: |
+            source $BASH_ENV
+            echo "Pushing images to ECR..."
+            docker push ${ECR_REPOSITORY_URL}:${CIRCLE_SHA1}
+            docker push ${ECR_REPOSITORY_URL}:latest
+            echo "Images pushed successfully"
+      
+      - run:
+          name: Trigger ECR vulnerability scan
+          command: |
+            source $BASH_ENV
+            echo "Triggering ECR vulnerability scan..."
+            aws ecr start-image-scan \
+              --repository-name $(basename $ECR_REPOSITORY_URL) \
+              --image-id imageTag=${CIRCLE_SHA1} || echo "Scan already in progress or completed"
+      
+      - run:
+          name: Wait for and retrieve ECR scan results
+          command: |
+            source $BASH_ENV
+            REPO_NAME=$(basename $ECR_REPOSITORY_URL)
+            echo "Waiting for ECR scan to complete..."
+            
+            # Wait up to 5 minutes for scan to complete
+            for i in {1..30}; do
+              SCAN_STATUS=$(aws ecr describe-image-scan-findings \
+                --repository-name $REPO_NAME \
+                --image-id imageTag=${CIRCLE_SHA1} \
+                --query 'imageScanStatus.status' \
+                --output text 2>/dev/null || echo "IN_PROGRESS")
+              
+              echo "Scan status: $SCAN_STATUS"
+              if [ "$SCAN_STATUS" = "COMPLETE" ]; then
+                break
+              elif [ "$SCAN_STATUS" = "FAILED" ]; then
+                echo "ECR scan failed"
+                break
+              fi
+              
+              echo "Waiting for scan to complete... (attempt $i/30)"
+              sleep 10
+            done
+            
+            # Get scan results
+            echo "Retrieving ECR scan results..."
+            aws ecr describe-image-scan-findings \
+              --repository-name $REPO_NAME \
+              --image-id imageTag=${CIRCLE_SHA1} \
+              --output json > ecr-scan-results.json || echo "No scan results available yet"
+            
+            # Display summary
+            if [ -f ecr-scan-results.json ]; then
+              echo "ECR Scan Summary:"
+              cat ecr-scan-results.json | jq -r '.imageScanFindings.findingCounts // {}'
+            fi
       
       - store_artifacts:
           path: trivy-report.json
           destination: security/trivy-report.json
       
-      - docker/push:
-          image: inscribe/customer-data-service
-          tag: ${CIRCLE_SHA1},latest
+      - store_artifacts:
+          path: ecr-scan-results.json
+          destination: security/ecr-scan-results.json
 
   deploy:
     executor: python-executor
@@ -175,8 +249,11 @@ jobs:
             cd terraform
             terraform init -input=false
             INSTANCE_ID=$(terraform output -raw ec2_instance_id)
+            ECR_REPOSITORY_URL=$(terraform output -raw ecr_repository_url)
             echo "export INSTANCE_ID=$INSTANCE_ID" >> $BASH_ENV
+            echo "export ECR_REPOSITORY_URL=$ECR_REPOSITORY_URL" >> $BASH_ENV
             echo "Deploying to instance: $INSTANCE_ID"
+            echo "Using ECR repository: $ECR_REPOSITORY_URL"
       
       - run:
           name: Create or update SSM document
@@ -202,6 +279,8 @@ jobs:
               --document-name "InscribeAppDeployment" \
               --parameters \
                 "imageTag=$CIRCLE_SHA1" \
+                "ecrRepositoryUrl=$ECR_REPOSITORY_URL" \
+                "awsRegion=$AWS_DEFAULT_REGION" \
                 "dbHost=$DB_HOST" \
                 "dbName=$DB_NAME" \
                 "dbUser=$DB_USER" \
@@ -302,8 +381,9 @@ workflows:
       - build-and-push:
           requires:
             - test
+            - infrastructure
           context:
-            - docker-hub
+            - aws-deployment
           filters:
             branches:
               only: main

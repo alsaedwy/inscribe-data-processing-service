@@ -15,10 +15,10 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from app.database.manager import DatabaseManager
+
 # Import the new modular components
 from app.main import app
-from app.schemas.customer import (CustomerCreate, CustomerResponse,
-                                  CustomerUpdate)
+from app.schemas.customer import CustomerCreate, CustomerResponse, CustomerUpdate
 from app.services.customer_service import CustomerService
 
 # Test client

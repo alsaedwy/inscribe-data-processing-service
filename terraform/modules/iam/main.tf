@@ -157,6 +157,44 @@ resource "aws_iam_role_policy_attachment" "ec2_metadata_policy" {
   policy_arn = aws_iam_policy.ec2_metadata_policy[0].arn
 }
 
+# Custom policy for ECR access
+resource "aws_iam_policy" "ecr_access_policy" {
+  count       = var.enable_ssm_access ? 1 : 0
+  name        = "${var.environment}-inscribe-ecr-access-policy"
+  description = "Policy for accessing ECR repository"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ecr:GetAuthorizationToken"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+          "ecr:DescribeRepositories",
+          "ecr:DescribeImages",
+          "ecr:DescribeImageScanFindings"
+        ]
+        Resource = var.ecr_repository_arn != null ? [var.ecr_repository_arn] : []
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ecr_access_policy" {
+  count      = var.enable_ssm_access ? 1 : 0
+  role       = aws_iam_role.ec2_role[0].name
+  policy_arn = aws_iam_policy.ecr_access_policy[0].arn
+}
+
 # Instance profile for EC2
 resource "aws_iam_instance_profile" "ec2_profile" {
   count = var.enable_ssm_access ? 1 : 0

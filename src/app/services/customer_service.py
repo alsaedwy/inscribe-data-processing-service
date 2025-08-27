@@ -9,8 +9,7 @@ from pymysql.cursors import DictCursor
 
 from app.core.logging import get_logger
 from app.database.manager import db_manager
-from app.schemas.customer import (CustomerCreate, CustomerResponse,
-                                  CustomerUpdate)
+from app.schemas.customer import CustomerCreate, CustomerResponse, CustomerUpdate
 
 logger = get_logger(__name__)
 

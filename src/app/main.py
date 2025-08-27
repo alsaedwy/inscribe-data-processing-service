@@ -16,14 +16,18 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from app.api import api_router
 from app.core.config import settings
 from app.core.db_setup import run_database_setup
-from app.core.logging import (get_logger, log_application_shutdown,
-                              log_application_startup, log_request_end,
-                              log_request_start, setup_logging)
+from app.core.logging import (
+    get_logger,
+    log_application_shutdown,
+    log_application_startup,
+    log_request_end,
+    log_request_start,
+    setup_logging,
+)
 from app.core.secure_credentials import load_credentials_at_startup
 from app.database.manager import DatabaseManager as ModularDatabaseManager
 from app.database.manager import db_manager
-from app.schemas.customer import (CustomerCreate, CustomerResponse,
-                                  CustomerUpdate)
+from app.schemas.customer import CustomerCreate, CustomerResponse, CustomerUpdate
 
 # Import Datadog if available
 try:

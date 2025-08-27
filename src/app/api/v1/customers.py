@@ -9,8 +9,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.core.logging import get_logger
 from app.core.security import authenticate
-from app.schemas.customer import (CustomerCreate, CustomerResponse,
-                                  CustomerUpdate, MessageResponse)
+from app.schemas.customer import (
+    CustomerCreate,
+    CustomerResponse,
+    CustomerUpdate,
+    MessageResponse,
+)
 from app.services.customer_service import CustomerService
 
 logger = get_logger(__name__)

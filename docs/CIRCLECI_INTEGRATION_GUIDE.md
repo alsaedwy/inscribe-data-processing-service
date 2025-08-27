@@ -21,18 +21,14 @@ This guide explains how to integrate your Inscribe Data Processing Service with 
 
 In your CircleCI project settings, add these environment variables:
 
-#### Docker Hub (for container registry)
-```
-DOCKERHUB_USERNAME=<your-dockerhub-username>
-DOCKERHUB_PASSWORD=<your-dockerhub-password-or-token>
-```
-
-#### AWS Credentials (for deployment)
+#### AWS Credentials (for ECR and deployment)
 ```
 AWS_ACCESS_KEY_ID=<your-aws-access-key>
 AWS_SECRET_ACCESS_KEY=<your-aws-secret-key>
 AWS_DEFAULT_REGION=<your-aws-region>
 ```
+
+**Note**: Docker Hub credentials are no longer needed as we now use Amazon ECR.
 
 #### Database Configuration
 ```
@@ -53,12 +49,13 @@ DATADOG_APP_KEY=<your-datadog-app-key>
 SSH_KEY_FINGERPRINT=<your-ssh-key-fingerprint>
 ```
 
-### 3. Create Contexts (Recommended)
+### 3. Create Contexts (Required)
 
 For better organization, create contexts in CircleCI:
 
-1. **docker-hub**: Contains Docker Hub credentials
-2. **aws-deployment**: Contains AWS credentials and deployment variables
+1. **aws-deployment**: Contains AWS credentials and all deployment variables (ECR, EC2, RDS, etc.)
+
+**Note**: The `docker-hub` context is no longer needed as we now use Amazon ECR.
 
 ### 4. Upload SSH Key
 
@@ -84,9 +81,10 @@ The CircleCI pipeline consists of four main jobs:
 - **Dependencies**: Requires test job to pass
 
 ### 3. Build and Push Job
-- **Docker**: Builds and pushes container image
-- **Security**: Runs Trivy container security scan
-- **Tags**: Uses commit SHA and latest
+- **Amazon ECR**: Builds and pushes container images to AWS ECR
+- **Dual Security Scanning**: Runs both Trivy and ECR vulnerability scans
+- **ECR Authentication**: Uses AWS CLI for ECR login
+- **Enhanced Scanning**: Triggers ECR enhanced scanning with detailed vulnerability reports
 - **Runs only on**: `main` branch
 
 ### 4. Deploy Job
@@ -95,9 +93,34 @@ The CircleCI pipeline consists of four main jobs:
 - **Health Check**: Verifies deployment success
 - **Runs only on**: `main` branch after build completes
 
-## Recent Fixes Applied
+## Recent Major Updates
 
-### Fixed CircleCI Expression Limit Issue:
+### ECR Integration (Latest Update):
+
+Replaced Docker Hub with Amazon ECR for enhanced security and vulnerability scanning:
+
+1. **Container Registry Migration**: 
+   - Moved from Docker Hub to Amazon ECR
+   - No more Docker Hub subscription fees
+   - Enhanced security with AWS encryption and IAM access control
+
+2. **Enhanced Vulnerability Scanning**:
+   - **Trivy Scanning**: Local vulnerability scanning during build
+   - **ECR Basic Scanning**: Automatic scanning on image push (free)
+   - **ECR Enhanced Scanning**: Continuous vulnerability monitoring with Amazon Inspector
+   - **Dual Scan Reports**: Both Trivy and ECR scan results stored as artifacts
+
+3. **Pipeline Dependencies**:
+   - Infrastructure job must complete before build-and-push
+   - ECR repository created by Terraform before images can be pushed
+   - Enhanced error handling and scan result retrieval
+
+4. **Cost Optimization**:
+   - Pay-per-GB storage model vs fixed subscription fees
+   - Automatic image lifecycle management
+   - Regional storage reduces data transfer costs
+
+### Fixed CircleCI Expression Limit Issue (Previous Update):
 
 The deployment job was experiencing "Expressions must be less than 2048 characters" error. This was resolved by:
 
@@ -147,18 +170,21 @@ The new deployment approach uses:
 
 The pipeline stores the following artifacts:
 - Test results and coverage reports
-- Security scan reports (Bandit, Safety, pip-audit, Trivy)
+- **Dual security scan reports**: Trivy and ECR scan results
+- **ECR vulnerability reports**: Detailed findings from AWS ECR scanning
 - HTML test reports
 
 ## Troubleshooting
 
 ### Common Issues:
 
-1. **Expression Limit Errors**: Resolved by using SSM documents instead of inline scripts
-2. **Docker Hub Authentication**: Ensure credentials are correct
-3. **AWS Permissions**: Verify IAM user has SSM and EC2 permissions
-4. **SSH Key**: Make sure the key pair exists in AWS and is uploaded to CircleCI
-5. **SSM Document**: The deployment document is created/updated automatically
+1. **ECR Authentication Failures**: Ensure AWS credentials have ECR permissions
+2. **Image Repository Not Found**: Verify Terraform has created the ECR repository
+3. **Scan Results Unavailable**: ECR scans may take several minutes to complete
+4. **Expression Limit Errors**: Resolved by using SSM documents instead of inline scripts
+5. **AWS Permissions**: Verify IAM user has SSM, ECR, and EC2 permissions
+6. **SSH Key**: Make sure the key pair exists in AWS and is uploaded to CircleCI
+7. **SSM Document**: The deployment document is created/updated automatically
 
 ### Health Check Endpoints:
 
@@ -178,10 +204,12 @@ The application provides multiple health check endpoints:
 
 ## Next Steps
 
-1. Set up the environment variables in CircleCI
-2. Create the required contexts
+1. Set up the environment variables in CircleCI (remove Docker Hub variables, ensure AWS credentials are set)
+2. Create the required AWS deployment context
 3. Upload your SSH key
-4. Push a commit to trigger the first build
-5. Monitor the pipeline execution and fix any issues
+4. Deploy infrastructure first to create ECR repository
+5. Push a commit to trigger the first build
+6. Monitor the pipeline execution and ECR scan results
 
+For detailed ECR configuration and vulnerability scanning information, see `ECR_INTEGRATION_GUIDE.md`.
 For more detailed AWS infrastructure setup, see `DEPLOYMENT_GUIDE.md`.

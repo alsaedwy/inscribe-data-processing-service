@@ -31,6 +31,14 @@
       "type": "String",
       "description": "Datadog app key",
       "default": ""
+    },
+    "ecrRepositoryUrl": {
+      "type": "String",
+      "description": "ECR repository URL"
+    },
+    "awsRegion": {
+      "type": "String",
+      "description": "AWS region"
     }
   },
   "mainSteps": [
@@ -49,8 +57,17 @@
           "    sudo systemctl enable docker",
           "    sudo usermod -a -G docker ssm-user",
           "fi",
-          "echo 'Pulling Docker image: inscribe/customer-data-service:{{imageTag}}'",
-          "sudo docker pull inscribe/customer-data-service:{{imageTag}}",
+          "echo 'Installing AWS CLI if not present...'",
+          "if ! command -v aws &> /dev/null; then",
+          "    curl 'https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip' -o 'awscliv2.zip'",
+          "    sudo yum install -y unzip",
+          "    unzip awscliv2.zip",
+          "    sudo ./aws/install",
+          "fi",
+          "echo 'Logging into ECR...'",
+          "aws ecr get-login-password --region {{awsRegion}} | sudo docker login --username AWS --password-stdin {{ecrRepositoryUrl}}",
+          "echo 'Pulling Docker image: {{ecrRepositoryUrl}}:{{imageTag}}'",
+          "sudo docker pull {{ecrRepositoryUrl}}:{{imageTag}}",
           "sudo docker stop inscribe-app || true",
           "sudo docker rm inscribe-app || true",
           "echo 'Starting new container...'",
@@ -64,7 +81,7 @@
           "  -e DATADOG_API_KEY='{{datadogApiKey}}' \\",
           "  -e DATADOG_APP_KEY='{{datadogAppKey}}' \\",
           "  -e ENVIRONMENT=development \\",
-          "  inscribe/customer-data-service:{{imageTag}}",
+          "  {{ecrRepositoryUrl}}:{{imageTag}}",
           "echo 'Waiting for application to start...'",
           "sleep 30",
           "echo 'Running health check...'",

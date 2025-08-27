@@ -25,6 +25,27 @@ output "application_url" {
   value       = "http://${module.ec2.public_ip}:8000"
 }
 
+# ECR Repository outputs
+output "ecr_repository_url" {
+  description = "URL of the ECR repository"
+  value       = module.ecr.repository_url
+}
+
+output "ecr_repository_arn" {
+  description = "ARN of the ECR repository"
+  value       = module.ecr.repository_arn
+}
+
+output "ecr_repository_name" {
+  description = "Name of the ECR repository"
+  value       = module.ecr.repository_name
+}
+
+output "ecr_registry_id" {
+  description = "Registry ID of the ECR repository"
+  value       = module.ecr.registry_id
+}
+
 # Secret names for application configuration
 output "application_secrets_name" {
   description = "Name of the application secrets in AWS Secrets Manager"

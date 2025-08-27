@@ -53,6 +53,25 @@ module "secrets" {
   circleci_ssh_private_key = var.circleci_ssh_private_key
 }
 
+# ECR Repository Module
+module "ecr" {
+  source = "./modules/ecr"
+
+  repository_name           = var.ecr_repository_name
+  environment              = var.environment
+  image_tag_mutability     = var.ecr_image_tag_mutability
+  scan_on_push             = var.ecr_scan_on_push
+  encryption_type          = var.ecr_encryption_type
+  kms_key_id               = var.ecr_kms_key_id
+  enable_enhanced_scanning = var.ecr_enable_enhanced_scanning
+  scan_frequency           = var.ecr_scan_frequency
+  enable_scan_logging      = var.ecr_enable_scan_logging
+  log_retention_days       = var.ecr_log_retention_days
+  max_image_count          = var.ecr_max_image_count
+  untagged_image_days      = var.ecr_untagged_image_days
+  dev_image_count          = var.ecr_dev_image_count
+}
+
 # Security Groups Module
 module "security_groups" {
   source = "./modules/security"
@@ -78,6 +97,7 @@ module "iam" {
   aws_account_id           = data.aws_caller_identity.current.account_id
   db_instance_identifier   = module.rds.db_instance_identifier
   db_username              = var.db_username
+  ecr_repository_arn       = module.ecr.repository_arn
 }
 
 # RDS Module
