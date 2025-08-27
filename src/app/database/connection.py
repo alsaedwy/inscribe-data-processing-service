@@ -59,7 +59,9 @@ class DatabaseConnection:
                 **base_config,
                 "user": self.iam_db_user,
                 "password": token,
-                "ssl": {"ssl_ca": "/opt/amazon-rds-ca-cert.pem"},  # Required for IAM auth
+                "ssl": {
+                    "ssl_ca": "/opt/amazon-rds-ca-cert.pem"
+                },  # Required for IAM auth
                 "ssl_disabled": False,
                 "connect_timeout": 60,
             }

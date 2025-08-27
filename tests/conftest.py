@@ -12,7 +12,9 @@ import pytest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 # Set test environment variables before any imports
-os.environ["ENVIRONMENT"] = "development"  # Use 'development' as it's allowed by the validator
+os.environ["ENVIRONMENT"] = (
+    "development"  # Use 'development' as it's allowed by the validator
+)
 os.environ["BASIC_AUTH_USERNAME"] = "test_user"
 os.environ["BASIC_AUTH_PASSWORD"] = "test_password"
 os.environ["USE_SECRETS_MANAGER"] = "false"

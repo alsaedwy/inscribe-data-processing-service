@@ -8,7 +8,6 @@ repos:
     hooks:
       - id: black
         language_version: python3
-        args: [--line-length=100]
         files: ^(src/|tests/).*\.py$
 
   # Import sorting with isort
@@ -16,7 +15,7 @@ repos:
     rev: 5.13.2
     hooks:
       - id: isort
-        args: [--profile, black, --line-length=100]
+        args: [--profile, black]
         files: ^(src/|tests/).*\.py$
 
   # Linting with flake8
@@ -37,24 +36,3 @@ repos:
         args: [tests/, -v, --tb=short, --cov=src/app, --cov-report=term]
         files: ^(src/|tests/).*\.py$
         pass_filenames: false
-
-# Optional hooks that can be enabled by uncommenting:
-# 
-# Security scanning with bandit:
-# - repo: https://github.com/pycqa/bandit
-#   rev: 1.7.9
-#   hooks:
-#     - id: bandit
-#       args: [-r, src/, --skip, B107,B608]  # Skip hardcoded password and SQL injection warnings
-#       files: ^src/.*\.py$
-#
-# Type checking with mypy (disabled due to Pydantic v2 compatibility issues):
-# - repo: local
-#   hooks:
-#     - id: mypy
-#       name: mypy
-#       entry: mypy
-#       language: system
-#       args: [src/app/, --ignore-missing-imports, --no-strict-optional, --allow-untyped-calls]
-#       files: ^src/.*\.py$
-#       pass_filenames: false

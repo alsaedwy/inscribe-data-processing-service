@@ -37,7 +37,9 @@ class Settings(BaseSettings):
 
     # Authentication settings (retrieved from Secrets Manager in production)
     basic_auth_username: str = Field(default="admin", env="BASIC_AUTH_USERNAME")
-    basic_auth_password: str = Field(default="dev_password_change_me", env="BASIC_AUTH_PASSWORD")
+    basic_auth_password: str = Field(
+        default="dev_password_change_me", env="BASIC_AUTH_PASSWORD"
+    )
 
     # Secrets Manager configuration
     api_credentials_secret_name: str = Field(
@@ -156,13 +158,17 @@ class Settings(BaseSettings):
             except Exception as e:
                 # Fallback to environment variables if Secrets Manager fails
                 logger = __import__("logging").getLogger(__name__)
-                logger.warning(f"Failed to retrieve credentials from Secrets Manager: {e}")
+                logger.warning(
+                    f"Failed to retrieve credentials from Secrets Manager: {e}"
+                )
                 return self.basic_auth_username, self.basic_auth_password
         else:
             # Use environment variables directly
             return self.basic_auth_username, self.basic_auth_password
 
-    model_config = ConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=False)
+    model_config = ConfigDict(
+        env_file=".env", env_file_encoding="utf-8", case_sensitive=False
+    )
 
 
 # Global settings instance

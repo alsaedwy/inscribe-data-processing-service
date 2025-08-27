@@ -62,7 +62,9 @@ class DatabaseSetup:
                     )
 
                     if cursor.fetchone():
-                        logger.info(f"IAM database user '{self.iam_username}' already exists")
+                        logger.info(
+                            f"IAM database user '{self.iam_username}' already exists"
+                        )
                         return True
 
                     # Create IAM user
@@ -84,7 +86,10 @@ class DatabaseSetup:
                     cursor.execute("FLUSH PRIVILEGES")
 
                     connection.commit()
-                    logger.info(f"Successfully created IAM database user " f"'{self.iam_username}'")
+                    logger.info(
+                        f"Successfully created IAM database user "
+                        f"'{self.iam_username}'"
+                    )
                     return True
 
         except pymysql.Error as e:

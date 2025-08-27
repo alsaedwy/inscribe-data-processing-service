@@ -192,7 +192,9 @@ def get_logger(name: str) -> logging.Logger:
 
 
 # Application event logging helpers
-def log_request_start(logger: logging.Logger, method: str, path: str, client_ip: str) -> None:
+def log_request_start(
+    logger: logging.Logger, method: str, path: str, client_ip: str
+) -> None:
     """Log request start"""
     logger.info(
         "Request started",
@@ -243,7 +245,9 @@ def log_database_operation(
     )
 
 
-def log_security_event(logger: logging.Logger, event: str, details: Dict[str, Any]) -> None:
+def log_security_event(
+    logger: logging.Logger, event: str, details: Dict[str, Any]
+) -> None:
     """Log security-related events"""
     logger.warning(
         f"Security event: {event}",
@@ -251,7 +255,9 @@ def log_security_event(logger: logging.Logger, event: str, details: Dict[str, An
     )
 
 
-def log_application_startup(logger: logging.Logger, version: str, environment: str) -> None:
+def log_application_startup(
+    logger: logging.Logger, version: str, environment: str
+) -> None:
     """Log application startup"""
     logger.info(
         "Application started",
@@ -266,4 +272,6 @@ def log_application_startup(logger: logging.Logger, version: str, environment: s
 
 def log_application_shutdown(logger: logging.Logger) -> None:
     """Log application shutdown"""
-    logger.info("Application shutting down", extra={"event_type": "application_shutdown"})
+    logger.info(
+        "Application shutting down", extra={"event_type": "application_shutdown"}
+    )

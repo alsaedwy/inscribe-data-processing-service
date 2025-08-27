@@ -27,16 +27,24 @@ class SecureCredentialLoader:
     def _initialize_client(self):
         """Initialize Secrets Manager client with error handling"""
         try:
-            self.secrets_client = boto3.client("secretsmanager", region_name=self.region_name)
-            logger.info(f"Secrets Manager client initialized for region {self.region_name}")
+            self.secrets_client = boto3.client(
+                "secretsmanager", region_name=self.region_name
+            )
+            logger.info(
+                f"Secrets Manager client initialized for region {self.region_name}"
+            )
         except NoCredentialsError:
-            logger.warning("AWS credentials not found. Falling back to environment variables.")
+            logger.warning(
+                "AWS credentials not found. Falling back to environment variables."
+            )
             self.secrets_client = None
         except Exception as e:
             logger.error(f"Failed to initialize Secrets Manager client: {e}")
             self.secrets_client = None
 
-    def get_secret(self, secret_name: str, use_cache: bool = True) -> Optional[Dict[str, Any]]:
+    def get_secret(
+        self, secret_name: str, use_cache: bool = True
+    ) -> Optional[Dict[str, Any]]:
         """
         Retrieve secret from AWS Secrets Manager with caching
 
@@ -48,7 +56,9 @@ class SecureCredentialLoader:
             Dictionary containing secret values, or None if unavailable
         """
         if not self.secrets_client:
-            logger.warning(f"Secrets Manager client not available for secret: {secret_name}")
+            logger.warning(
+                f"Secrets Manager client not available for secret: {secret_name}"
+            )
             return None
 
         # Check cache first
@@ -104,7 +114,9 @@ class SecureCredentialLoader:
             Tuple of (username, password)
         """
         # Try to get from Secrets Manager first
-        secret_name = os.getenv("API_CREDENTIALS_SECRET_NAME", "dev-inscribe-application-secrets")
+        secret_name = os.getenv(
+            "API_CREDENTIALS_SECRET_NAME", "dev-inscribe-application-secrets"
+        )
         secret_data = self.get_secret(secret_name)
 
         if secret_data:
@@ -136,7 +148,9 @@ class SecureCredentialLoader:
         Returns:
             Dictionary with database connection details or None
         """
-        secret_name = os.getenv("RDS_CREDENTIALS_SECRET_NAME", "dev-inscribe-rds-credentials")
+        secret_name = os.getenv(
+            "RDS_CREDENTIALS_SECRET_NAME", "dev-inscribe-rds-credentials"
+        )
         secret_data = self.get_secret(secret_name)
 
         if secret_data:
@@ -161,8 +175,12 @@ class SecureCredentialLoader:
         Returns:
             Tuple of (api_key, app_key) or (None, None)
         """
-        api_secret_name = os.getenv("DATADOG_API_KEY_SECRET_NAME", "dev-inscribe-datadog-api-key")
-        app_secret_name = os.getenv("DATADOG_APP_KEY_SECRET_NAME", "dev-inscribe-datadog-app-key")
+        api_secret_name = os.getenv(
+            "DATADOG_API_KEY_SECRET_NAME", "dev-inscribe-datadog-api-key"
+        )
+        app_secret_name = os.getenv(
+            "DATADOG_APP_KEY_SECRET_NAME", "dev-inscribe-datadog-app-key"
+        )
 
         api_secret = self.get_secret(api_secret_name)
         app_secret = self.get_secret(app_secret_name)

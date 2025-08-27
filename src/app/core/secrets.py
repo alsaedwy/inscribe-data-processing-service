@@ -57,7 +57,9 @@ class SecretsManager:
                 logger.error(f"Failed to decrypt secret {secret_arn}: {e}")
                 raise SecretRetrievalError(f"Failed to decrypt secret: {secret_arn}")
             elif error_code == "InternalServiceErrorException":
-                logger.error(f"Internal service error retrieving secret {secret_arn}: {e}")
+                logger.error(
+                    f"Internal service error retrieving secret {secret_arn}: {e}"
+                )
                 raise SecretRetrievalError(f"Internal service error: {secret_arn}")
             elif error_code == "InvalidParameterException":
                 logger.error(f"Invalid parameter for secret {secret_arn}: {e}")
@@ -93,7 +95,9 @@ class SecretsManager:
         missing_keys = [key for key in required_keys if key not in secret_data]
 
         if missing_keys:
-            raise SecretRetrievalError(f"Missing required database credential keys: {missing_keys}")
+            raise SecretRetrievalError(
+                f"Missing required database credential keys: {missing_keys}"
+            )
 
         return {
             "username": secret_data["username"],
@@ -103,7 +107,9 @@ class SecretsManager:
             "database": secret_data["database"],
         }
 
-    def get_datadog_credentials(self, api_key_arn: str, app_key_arn: str) -> Dict[str, str]:
+    def get_datadog_credentials(
+        self, api_key_arn: str, app_key_arn: str
+    ) -> Dict[str, str]:
         """
         Retrieve Datadog credentials from secrets manager
 
@@ -139,7 +145,9 @@ class SecretsManager:
             "jwt_secret_key": secret_data.get("jwt_secret_key"),
         }
 
-    def get_api_credentials(self, secret_arn: str) -> tuple[Optional[str], Optional[str]]:
+    def get_api_credentials(
+        self, secret_arn: str
+    ) -> tuple[Optional[str], Optional[str]]:
         """
         Retrieve API credentials (username and password) from Secrets Manager
 
@@ -207,7 +215,9 @@ def get_secret_value(secret_arn: str, key: str, default: Any = None) -> Any:
         secret_data = secrets_mgr.get_secret(secret_arn)
         return secret_data.get(key, default)
     except SecretRetrievalError:
-        logger.warning(f"Failed to retrieve secret {secret_arn}, using default for key {key}")
+        logger.warning(
+            f"Failed to retrieve secret {secret_arn}, using default for key {key}"
+        )
         return default
 
 
@@ -224,10 +234,17 @@ def load_secrets_into_environment():
         secrets_mgr = get_secrets_manager()
 
         # Load application secrets (API credentials, JWT secret)
-        if hasattr(settings, "api_credentials_secret_name") and settings.use_secrets_manager:
-            logger.info(f"Loading application secrets from: {settings.api_credentials_secret_name}")
+        if (
+            hasattr(settings, "api_credentials_secret_name")
+            and settings.use_secrets_manager
+        ):
+            logger.info(
+                f"Loading application secrets from: {settings.api_credentials_secret_name}"
+            )
 
-            app_secrets = secrets_mgr.get_application_secrets(settings.api_credentials_secret_name)
+            app_secrets = secrets_mgr.get_application_secrets(
+                settings.api_credentials_secret_name
+            )
 
             if app_secrets["basic_auth_username"]:
                 os.environ["BASIC_AUTH_USERNAME"] = app_secrets["basic_auth_username"]

@@ -8,7 +8,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.core.logging import get_logger
 from app.core.security import authenticate
-from app.schemas.customer import CustomerCreate, CustomerResponse, CustomerUpdate, MessageResponse
+from app.schemas.customer import (
+    CustomerCreate,
+    CustomerResponse,
+    CustomerUpdate,
+    MessageResponse,
+)
 from app.services.customer_service import CustomerService
 
 logger = get_logger(__name__)
@@ -16,7 +21,9 @@ router = APIRouter(prefix="/customers", tags=["customers"])
 
 
 @router.post("/", response_model=CustomerResponse, status_code=status.HTTP_201_CREATED)
-async def create_customer(customer: CustomerCreate, username: str = Depends(authenticate)):
+async def create_customer(
+    customer: CustomerCreate, username: str = Depends(authenticate)
+):
     """Create a new customer with proper input validation and SQL injection prevention"""
     try:
         result = CustomerService.create_customer(customer)
@@ -39,7 +46,9 @@ async def create_customer(customer: CustomerCreate, username: str = Depends(auth
 
 
 @router.get("/", response_model=List[CustomerResponse])
-async def get_customers(skip: int = 0, limit: int = 100, username: str = Depends(authenticate)):
+async def get_customers(
+    skip: int = 0, limit: int = 100, username: str = Depends(authenticate)
+):
     """Get all customers with pagination"""
     try:
         results = CustomerService.get_customers(skip=skip, limit=limit)
@@ -58,7 +67,9 @@ async def get_customer(customer_id: int, username: str = Depends(authenticate)):
     try:
         result = CustomerService.get_customer_by_id(customer_id)
         if not result:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Customer not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Customer not found"
+            )
         return CustomerResponse(**result)
     except HTTPException:
         raise
@@ -80,7 +91,9 @@ async def update_customer(
     try:
         result = CustomerService.update_customer(customer_id, customer_update)
         if not result:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Customer not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Customer not found"
+            )
         return CustomerResponse(**result)
     except ValueError as e:
         raise HTTPException(
@@ -107,7 +120,9 @@ async def delete_customer(customer_id: int, username: str = Depends(authenticate
     try:
         success = CustomerService.delete_customer(customer_id)
         if not success:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Customer not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Customer not found"
+            )
         return MessageResponse(message="Customer deleted successfully")
     except HTTPException:
         raise
