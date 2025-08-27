@@ -1,0 +1,319 @@
+version: 2.1
+
+orbs:
+  docker: circleci/docker@2.4.0
+  aws-cli: circleci/aws-cli@4.0
+
+executors:
+  python-executor:
+    docker:
+      - image: cimg/python:3.13
+    working_directory: ~/repo
+    environment:
+      PYTHONPATH: /home/circleci/repo/src
+
+jobs:
+  test:
+    executor: python-executor
+    steps:
+      - checkout
+      
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "requirements.txt" }}-{{ checksum "test-requirements.txt" }}
+            - v1-dependencies-
+      
+      - run:
+          name: Install dependencies
+          command: |
+            python -m venv venv
+            . venv/bin/activate
+            pip install --upgrade pip
+            pip install -r requirements.txt
+            pip install -r test-requirements.txt
+      
+      - save_cache:
+          paths:
+            - ./venv
+          key: v1-dependencies-{{ checksum "requirements.txt" }}-{{ checksum "test-requirements.txt" }}
+      
+      - run:
+          name: Run linting
+          command: |
+            . venv/bin/activate
+            pip install flake8==7.1.1 black==24.8.0 isort==5.13.2 mypy==1.11.2
+            echo "Running Black formatter check..."
+            black --check src/ tests/ || (echo "Code formatting issues found. Run 'black src/ tests/' to fix." && exit 1)
+            echo "Running isort import sorting check..."
+            isort --check-only src/ tests/ || (echo "Import sorting issues found. Run 'isort src/ tests/' to fix." && exit 1)
+            echo "Running flake8 linting..."
+            flake8 src/ tests/ --max-line-length=100 --extend-ignore=E203,W503
+            echo "Running mypy type checking..."
+            mypy src/app/ --ignore-missing-imports || true
+      
+      - run:
+          name: Run unit tests with coverage
+          command: |
+            . venv/bin/activate
+            pip install pytest-cov==5.0.0 pytest-html==4.1.1
+            mkdir -p test-results
+            pytest tests/ -v --tb=short \
+              --cov=src/app \
+              --cov-report=xml:test-results/coverage.xml \
+              --cov-report=html:test-results/htmlcov \
+              --cov-report=term \
+              --junit-xml=test-results/pytest.xml \
+              --html=test-results/report.html --self-contained-html
+      
+      - run:
+          name: Run security checks
+          command: |
+            . venv/bin/activate
+            pip install bandit==1.7.9 safety==3.2.7
+            echo "Running Bandit security scan..."
+            bandit -r src/ -f json -o bandit-report.json || true
+            echo "Running Safety dependency vulnerability scan..."
+            safety check --json --output safety-report.json || true
+            echo "Running pip-audit for known vulnerabilities..."
+            pip install pip-audit==2.7.3
+            pip-audit --format=json --output=pip-audit-report.json || true
+      
+      - store_test_results:
+          path: test-results
+      
+      - store_artifacts:
+          path: test-results/
+          destination: test-results/
+      
+      - store_artifacts:
+          path: bandit-report.json
+          destination: security/bandit-report.json
+      
+      - store_artifacts:
+          path: safety-report.json
+          destination: security/safety-report.json
+      
+      - store_artifacts:
+          path: pip-audit-report.json
+          destination: security/pip-audit-report.json
+
+  build-and-push:
+    executor: docker/docker
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 20.10.18
+      
+      - docker/check:
+          docker-username: DOCKERHUB_USERNAME
+          docker-password: DOCKERHUB_PASSWORD
+      
+      - run:
+          name: Build Docker image
+          command: |
+            echo "Building Docker image with tag: inscribe/customer-data-service:${CIRCLE_SHA1}"
+            docker build -t inscribe/customer-data-service:${CIRCLE_SHA1} .
+            docker tag inscribe/customer-data-service:${CIRCLE_SHA1} inscribe/customer-data-service:latest
+            
+            # Test the built image
+            echo "Testing Docker image..."
+            docker run --rm -d --name test-container \
+              -p 8000:8000 \
+              -e DB_HOST=localhost \
+              -e DB_NAME=test \
+              -e DB_USER=test \
+              -e DB_PASSWORD=test \
+              inscribe/customer-data-service:${CIRCLE_SHA1} &
+            
+            # Wait for container to start
+            sleep 10
+            
+            # Basic health check (this will fail due to no DB, but tests image runs)
+            docker logs test-container || true
+            docker stop test-container || true
+      
+      - run:
+          name: Run container security scan
+          command: |
+            # Install Trivy for container scanning
+            curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+            echo "Running container security scan..."
+            trivy image --exit-code 0 --severity HIGH,CRITICAL \
+              --format json --output trivy-report.json \
+              inscribe/customer-data-service:${CIRCLE_SHA1}
+            
+            # Also generate readable format
+            trivy image --severity HIGH,CRITICAL inscribe/customer-data-service:${CIRCLE_SHA1}
+      
+      - store_artifacts:
+          path: trivy-report.json
+          destination: security/trivy-report.json
+      
+      - docker/push:
+          image: inscribe/customer-data-service
+          tag: ${CIRCLE_SHA1},latest
+
+  deploy:
+    executor: python-executor
+    steps:
+      - checkout
+      - aws-cli/setup
+      
+      - add_ssh_keys:
+          fingerprints:
+            - "$SSH_KEY_FINGERPRINT"
+      
+      - run:
+          name: Install Session Manager plugin
+          command: |
+            curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb" -o "session-manager-plugin.deb"
+            sudo dpkg -i session-manager-plugin.deb
+      
+      - run:
+          name: Get EC2 instance information
+          command: |
+            cd terraform
+            terraform init -input=false
+            INSTANCE_ID=$(terraform output -raw ec2_instance_id)
+            echo "export INSTANCE_ID=$INSTANCE_ID" >> $BASH_ENV
+            echo "Deploying to instance: $INSTANCE_ID"
+      
+      - run:
+          name: Create or update SSM document
+          command: |
+            # Try to create the document, update if it already exists
+            aws ssm create-document \
+              --name "InscribeAppDeployment" \
+              --document-type "Command" \
+              --content file://scripts/deploy-document.json || \
+            aws ssm update-document \
+              --name "InscribeAppDeployment" \
+              --content file://scripts/deploy-document.json \
+              --document-version "\$LATEST"
+      
+      - run:
+          name: Execute deployment via SSM document
+          command: |
+            source $BASH_ENV
+            
+            # Send deployment command using custom SSM document
+            COMMAND_ID=$(aws ssm send-command \
+              --instance-ids "$INSTANCE_ID" \
+              --document-name "InscribeAppDeployment" \
+              --parameters \
+                "imageTag=$CIRCLE_SHA1" \
+                "dbHost=$DB_HOST" \
+                "dbName=$DB_NAME" \
+                "dbUser=$DB_USER" \
+                "dbPassword=$DB_PASSWORD" \
+                "datadogApiKey=$DATADOG_API_KEY" \
+                "datadogAppKey=$DATADOG_APP_KEY" \
+              --output text \
+              --query "Command.CommandId")
+            
+            echo "Deployment command ID: $COMMAND_ID"
+            echo "export COMMAND_ID=$COMMAND_ID" >> $BASH_ENV
+      
+      - run:
+          name: Wait for deployment completion
+          command: |
+            source $BASH_ENV
+            
+            # Wait for command to complete
+            echo "Waiting for deployment to complete..."
+            aws ssm wait command-executed \
+              --command-id "$COMMAND_ID" \
+              --instance-id "$INSTANCE_ID"
+      
+      - run:
+          name: Check deployment results
+          command: |
+            source $BASH_ENV
+            
+            # Get command results
+            echo "Deployment results:"
+            aws ssm get-command-invocation \
+              --command-id "$COMMAND_ID" \
+              --instance-id "$INSTANCE_ID" \
+              --query "StandardOutputContent" \
+              --output text
+            
+            # Check if deployment was successful
+            STATUS=$(aws ssm get-command-invocation \
+              --command-id "$COMMAND_ID" \
+              --instance-id "$INSTANCE_ID" \
+              --query "Status" \
+              --output text)
+            
+            if [ "$STATUS" != "Success" ]; then
+              echo "Deployment failed!"
+              aws ssm get-command-invocation \
+                --command-id "$COMMAND_ID" \
+                --instance-id "$INSTANCE_ID" \
+                --query "StandardErrorContent" \
+                --output text
+              exit 1
+            fi
+            
+            echo "Deployment completed successfully!"
+
+  infrastructure:
+    executor: python-executor
+    steps:
+      - checkout
+      - aws-cli/setup
+      
+      - run:
+          name: Install Terraform
+          command: |
+            curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
+            sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+            sudo apt-get update && sudo apt-get install terraform
+      
+      - run:
+          name: Terraform Plan
+          command: |
+            cd terraform
+            terraform init
+            terraform plan -out=tfplan
+      
+      - run:
+          name: Terraform Apply (if on main branch)
+          command: |
+            cd terraform
+            if [ "$CIRCLE_BRANCH" == "main" ]; then
+              terraform apply -auto-approve tfplan
+            else
+              echo "Skipping terraform apply - not on main branch"
+            fi
+
+workflows:
+  build-test-deploy:
+    jobs:
+      - test
+      
+      - infrastructure:
+          requires:
+            - test
+          filters:
+            branches:
+              only: main
+      
+      - build-and-push:
+          requires:
+            - test
+          context:
+            - docker-hub
+          filters:
+            branches:
+              only: main
+      
+      - deploy:
+          requires:
+            - build-and-push
+            - infrastructure
+          context:
+            - aws-deployment
+          filters:
+            branches:
+              only: main

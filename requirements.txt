@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+PyMySQL
+cryptography
+python-multipart
+ddtrace
+datadog
+boto3
+botocore
+python-dotenv
+email-validator
+httpx

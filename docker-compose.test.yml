@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  test:
+    build: .
+    environment:
+      - DB_HOST=test-db
+      - DB_NAME=test_db
+      - DB_USER=test_user
+      - DB_PASSWORD=test_password
+      - DB_PORT=3306
+    command: >
+      sh -c "
+        pip install -r test-requirements.txt &&
+        pytest tests/ -v --tb=short &&
+        bandit -r src/ -f json || true &&
+        safety check --json || true
+      "
+    depends_on:
+      - test-db
+    volumes:
+      - .:/app
+    working_dir: /app
+
+  test-db:
+    image: mysql:8.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_DATABASE=test_db
+      - MYSQL_USER=test_user
+      - MYSQL_PASSWORD=test_password
+    ports:
+      - "3307:3306"
+    tmpfs:
+      - /var/lib/mysql

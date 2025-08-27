@@ -205,3 +205,28 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Project specific
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+tfplan
+
+# Security reports
+bandit-report.json
+safety-report.json
+
+# Docker
+docker-compose.override.yml
+
+# Database
+*.sql.backup
+
+
+# DS Store
+.DS_Store
+
+# Backup files and/or archived
+*.bak
