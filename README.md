@@ -1,8 +1,8 @@
 # Inscribe Data Processing Service
 
-A secure, scalable microservice architecture for customer data management, built with FastAPI, containerized with Docker, and deployed on AWS infrastructure using Terraform.
+A secure, s**Free Tier Note**: This project is configured to use only AWS Free Tier resources. See `FREE_TIER_COMPLIANCE.md` for details on staying within free limits.alable microservice architecture for customer data management, built with FastAPI, containerized with Docker, and deployed on AWS infrastructure using Terraform.
 
-## 🏗️ Architecture Overview
+## Architecture Overview
 
 This project demonstrates a complete microservice architecture with:
 
@@ -12,7 +12,7 @@ This project demonstrates a complete microservice architecture with:
 - **CI/CD Pipeline**: CircleCI configuration for automated testing and deployment
 - **Observability**: Structured logging and health monitoring
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 ├── terraform/                 # Infrastructure as Code
@@ -35,7 +35,7 @@ This project demonstrates a complete microservice architecture with:
 └── init.sql                   # Database initialization
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -109,7 +109,7 @@ This project demonstrates a complete microservice architecture with:
    # Or use AWS Console: EC2 → Instance → Connect → Session Manager
    ```
 
-   📋 **For detailed access instructions, see [EC2_ACCESS_GUIDE.md](./EC2_ACCESS_GUIDE.md)**
+   **For detailed access instructions, see [EC2_ACCESS_GUIDE.md](./EC2_ACCESS_GUIDE.md)**
 
 5. **Monitor deployment progress**:
    ```bash
@@ -126,17 +126,17 @@ This project demonstrates a complete microservice architecture with:
    ./scripts/secure_api_test.sh http://<EC2_PUBLIC_IP>:8000
    ```
 
-📖 **For complete setup instructions, see [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)**
+**For complete setup instructions, see [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)**
 
-## 🛡️ Security Features
+## Security Features
 
-### 🔐 Credential Management
+### Credential Management
 - **AWS Secrets Manager Integration**: All production credentials are automatically generated and stored securely
 - **No Hardcoded Passwords**: Zero hardcoded credentials in source code or configuration files
 - **Secure Credential Retrieval**: Uses boto3 and AWS SDK for runtime credential loading
 - **Environment Separation**: Different credential sets for development, staging, and production
 
-### 🔒 Secure API Testing
+### Secure API Testing
 Always use the provided secure testing script instead of manual curl commands:
 ```bash
 # Health check
@@ -153,7 +153,7 @@ Always use the provided secure testing script instead of manual curl commands:
 }'
 ```
 
-**⚠️ Important Security Notes:**
+**Important Security Notes:**
 - Never hardcode credentials in source code, scripts, or documentation
 - Always retrieve credentials from environment variables or AWS Secrets Manager
 - Use the secure testing script for all API interactions
@@ -186,7 +186,7 @@ Always use the provided secure testing script instead of manual curl commands:
 - **IAM database authentication** enabled
 - **Minimal AWS permissions** following principle of least privilege
 
-## 📊 API Endpoints
+## API Endpoints
 
 ### Health Check
 ```bash
@@ -237,7 +237,7 @@ Authorization: Basic <credentials>
 - **Development**: Use `./scripts/secure_api_test.sh` for testing
 - **Note**: Default credentials are auto-generated and stored securely
 
-## 🧪 Testing
+## Testing
 
 ### Run Unit Tests
 ```bash
@@ -269,7 +269,7 @@ echo '{"first_name":"Test","last_name":"User","email":"test@example.com"}' | \
 ./scripts/secure_api_test.sh http://localhost:8000
 ```
 
-## 🔄 CI/CD Pipeline
+## CI/CD Pipeline
 
 The CircleCI pipeline includes:
 
@@ -310,7 +310,7 @@ EC2_HOST
 AWS_EC2_INSTANCE_ID
 ```
 
-## 🏗️ Infrastructure Components
+## Infrastructure Components
 
 ### AWS Resources Created
 
@@ -342,7 +342,7 @@ AWS_EC2_INSTANCE_ID
 - **`modules/rds`**: RDS instance with security configurations
 - **`modules/security`**: Security groups with least privilege
 
-## 📈 Monitoring & Observability
+## Monitoring & Observability
 
 ### Logging
 - **Structured logging** with Python logging module
@@ -366,7 +366,7 @@ DD_API_KEY=your-api-key
 DD_SITE=datadoghq.com
 ```
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -389,7 +389,7 @@ DD_SITE=datadoghq.com
 | `db_instance_class` | RDS instance class | `db.t3.micro` |
 | `allowed_cidr_blocks` | Allowed IP ranges | `["0.0.0.0/0"]` |
 
-## 🚀 Deployment
+## Deployment
 
 ### Manual Deployment
 
@@ -416,7 +416,7 @@ DD_SITE=datadoghq.com
 
 Push to the `main` branch to trigger the CI/CD pipeline.
 
-## 🔒 Security Considerations
+## Security Considerations
 
 ### Production Recommendations
 
@@ -440,7 +440,7 @@ Push to the `main` branch to trigger the CI/CD pipeline.
    - Set up CloudWatch alarms
    - Implement log aggregation
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -471,7 +471,7 @@ Push to the `main` branch to trigger the CI/CD pipeline.
    aws iam get-user
    ```
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch
@@ -480,11 +480,11 @@ Push to the `main` branch to trigger the CI/CD pipeline.
 5. Run the test suite
 6. Submit a pull request
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License.
 
-## 🙋‍♂️ Support
+## Support
 
 For questions or issues, please:
 1. Check the troubleshooting section
@@ -493,4 +493,4 @@ For questions or issues, please:
 
 ---
 
-**Built with ❤️ for Inscribe's mission of creating fair and efficient financial services.**
+**Built with dedication for Inscribe's mission of creating fair and efficient financial services.**

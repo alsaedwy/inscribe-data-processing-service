@@ -38,20 +38,20 @@ terraform plan -out=tfplan
 read -p "Do you want to apply this plan? (y/N): " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-    echo "🚀 Applying Terraform configuration..."
+    echo "Applying Terraform configuration..."
     terraform apply tfplan
     
     echo ""
-    echo "✅ Infrastructure deployment complete!"
+    echo "Infrastructure deployment complete!"
     echo ""
-    echo "📊 Outputs:"
+    echo "Outputs:"
     terraform output
     
     # Get the EC2 public IP
     EC2_IP=$(terraform output -raw ec2_public_ip 2>/dev/null || echo "")
     
     echo ""
-    echo "🔗 Next steps:"
+    echo "Next steps:"
     echo "1. Wait 5-10 minutes for complete application deployment"
     echo "2. Monitor deployment progress:"
     echo "   ssh ec2-user@$EC2_IP 'sudo tail -f /var/log/user-data.log'"
@@ -64,11 +64,11 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     echo "   Application URL: http://$EC2_IP:8000"
     echo "   API Documentation: http://$EC2_IP:8000/docs"
     echo ""
-    echo "📝 Management commands (on EC2 instance):"
+    echo "Management commands (on EC2 instance):"
     echo "   sudo systemctl status inscribe-app    # Check service status"
     echo "   /opt/inscribe-app/manage.sh logs      # View application logs"
     echo "   /opt/inscribe-app/manage.sh health    # Check application health"
 else
-    echo "❌ Deployment cancelled."
+    echo "Deployment cancelled."
     rm -f tfplan
 fi

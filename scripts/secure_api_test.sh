@@ -16,16 +16,16 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-echo -e "${GREEN}🔐 Secure API Testing Script${NC}"
+echo -e "${GREEN}Secure API Testing Script${NC}"
 echo "=================================="
 
 # Function to retrieve credentials from Secrets Manager
 get_credentials() {
-    echo -e "${YELLOW}📡 Retrieving credentials from AWS Secrets Manager...${NC}"
+    echo -e "${YELLOW}Retrieving credentials from AWS Secrets Manager...${NC}"
     
     # Check if AWS CLI is available
     if ! command -v aws &> /dev/null; then
-        echo -e "${RED}❌ AWS CLI not found. Please install it first.${NC}"
+        echo -e "${RED}AWS CLI not found. Please install it first.${NC}"
         exit 1
     fi
     
@@ -37,8 +37,8 @@ get_credentials() {
         --output text 2>/dev/null)
     
     if [ $? -ne 0 ] || [ -z "$SECRET_JSON" ]; then
-        echo -e "${RED}❌ Failed to retrieve credentials from Secrets Manager${NC}"
-        echo -e "${YELLOW}💡 Fallback: Using environment variables${NC}"
+        echo -e "${RED}Failed to retrieve credentials from Secrets Manager${NC}"
+        echo -e "${YELLOW}Fallback: Using environment variables${NC}"
         
         # Fallback to environment variables
         API_USERNAME="${BASIC_AUTH_USERNAME:-admin}"
@@ -46,7 +46,7 @@ get_credentials() {
         API_PASSWORD="${BASIC_AUTH_PASSWORD:-dev_password_change_me}"
         
         if [ "$API_PASSWORD" = "dev_password_change_me" ]; then
-            echo -e "${RED}⚠️  Using default password - change this in production!${NC}"
+            echo -e "${RED}Using default password - change this in production!${NC}"
         fi
     else
         # Parse JSON to extract credentials
@@ -54,12 +54,12 @@ get_credentials() {
         API_PASSWORD=$(echo "$SECRET_JSON" | jq -r '.basic_auth_password')
         
         if [ "$API_USERNAME" = "null" ] || [ "$API_PASSWORD" = "null" ]; then
-            echo -e "${RED}❌ Invalid credentials format in Secrets Manager${NC}"
+            echo -e "${RED}Invalid credentials format in Secrets Manager${NC}"
             exit 1
         fi
         echo -e "API_USERNAME=$API_USERNAME"
         echo -e "API_PASSWORD=$API_PASSWORD"
-        echo -e "${GREEN}✅ Credentials retrieved successfully from Secrets Manager${NC}"
+        echo -e "${GREEN}Credentials retrieved successfully from Secrets Manager${NC}"
     fi
 }
 
@@ -69,7 +69,7 @@ test_api() {
     local method="${2:-GET}"
     local data="$3"
     
-    echo -e "${YELLOW}🧪 Testing ${method} ${endpoint}${NC}"
+    echo -e "${YELLOW}Testing ${method} ${endpoint}${NC}"
     
     if [ "$method" = "POST" ] && [ -n "$data" ]; then
         response=$(curl -s -w "HTTP_CODE:%{http_code}" \
@@ -89,10 +89,10 @@ test_api() {
     body=$(echo "$response" | sed 's/HTTP_CODE:[0-9]*$//')
     
     if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
-        echo -e "${GREEN}✅ Success (HTTP $http_code)${NC}"
+        echo -e "${GREEN}Success (HTTP $http_code)${NC}"
         echo "$body" | jq . 2>/dev/null || echo "$body"
     else
-        echo -e "${RED}❌ Failed (HTTP $http_code)${NC}"
+        echo -e "${RED}Failed (HTTP $http_code)${NC}"
         echo "$body"
     fi
     
@@ -115,7 +115,7 @@ main() {
     get_credentials
     
     # Test API endpoints
-    echo -e "${GREEN}🧪 Testing API endpoints...${NC}"
+    echo -e "${GREEN}Testing API endpoints...${NC}"
     echo "=================================="
     
     test_api "${BASE_URL}/health"
@@ -134,9 +134,9 @@ main() {
     
     test_api "${BASE_URL}/api/v1/customers/" "POST" "$customer_data"
     
-    echo -e "${GREEN}🎉 API testing completed${NC}"
+    echo -e "${GREEN}API testing completed${NC}"
     echo ""
-    echo -e "${YELLOW}🔐 Security Notes:${NC}"
+    echo -e "${YELLOW}Security Notes:${NC}"
     echo "- Credentials were retrieved from AWS Secrets Manager"
     echo "- No secrets were logged or displayed in plain text"
     echo "- Use this script instead of hardcoded credentials"

@@ -3,7 +3,6 @@ version: 2.1
 orbs:
   docker: circleci/docker@3.0.0
   aws-cli: circleci/aws-cli@5.4.1
-  terraform: circleci/terraform@3.7.0
 
 executors:
   python-executor:
@@ -112,29 +111,11 @@ jobs:
       - aws-cli/setup
       
       - run:
-          name: Get ECR repository information
-          command: |
-            cd terraform
-            terraform init -input=false
-            ECR_REPOSITORY_URL=$(terraform output -raw ecr_repository_url)
-            ECR_REGISTRY_ID=$(terraform output -raw ecr_registry_id)
-            echo "export ECR_REPOSITORY_URL=$ECR_REPOSITORY_URL" >> $BASH_ENV
-            echo "export ECR_REGISTRY_ID=$ECR_REGISTRY_ID" >> $BASH_ENV
-            echo "ECR Repository URL: $ECR_REPOSITORY_URL"
-      
-      - run:
-          name: Login to Amazon ECR
-          command: |
-            source $BASH_ENV
-            aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
-      
-      - run:
           name: Build Docker image
           command: |
-            source $BASH_ENV
-            echo "Building Docker image with tag: ${ECR_REPOSITORY_URL}:${CIRCLE_SHA1}"
-            docker build -t ${ECR_REPOSITORY_URL}:${CIRCLE_SHA1} .
-            docker tag ${ECR_REPOSITORY_URL}:${CIRCLE_SHA1} ${ECR_REPOSITORY_URL}:latest
+            echo "Building Docker image with tag: inscribe-app:${CIRCLE_SHA1}"
+            docker build -t inscribe-app:${CIRCLE_SHA1} .
+            docker tag inscribe-app:${CIRCLE_SHA1} inscribe-app:latest
             
             # Test the built image
             echo "Testing Docker image..."
@@ -144,7 +125,7 @@ jobs:
               -e DB_NAME=test \
               -e DB_USER=test \
               -e DB_PASSWORD=test \
-              ${ECR_REPOSITORY_URL}:${CIRCLE_SHA1} &
+              inscribe-app:${CIRCLE_SHA1} &
             
             # Wait for container to start
             sleep 10
@@ -156,241 +137,28 @@ jobs:
       - run:
           name: Run container security scan
           command: |
-            source $BASH_ENV
             # Install Trivy for container scanning
             curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
             echo "Running container security scan..."
             trivy image --exit-code 0 --severity HIGH,CRITICAL \
               --format json --output trivy-report.json \
-              ${ECR_REPOSITORY_URL}:${CIRCLE_SHA1}
+              inscribe-app:${CIRCLE_SHA1}
             
             # Also generate readable format
-            trivy image --severity HIGH,CRITICAL ${ECR_REPOSITORY_URL}:${CIRCLE_SHA1}
-      
-      - run:
-          name: Push images to ECR
-          command: |
-            source $BASH_ENV
-            echo "Pushing images to ECR..."
-            docker push ${ECR_REPOSITORY_URL}:${CIRCLE_SHA1}
-            docker push ${ECR_REPOSITORY_URL}:latest
-            echo "Images pushed successfully"
-      
-      - run:
-          name: Trigger ECR vulnerability scan
-          command: |
-            source $BASH_ENV
-            echo "Triggering ECR vulnerability scan..."
-            aws ecr start-image-scan \
-              --repository-name $(basename $ECR_REPOSITORY_URL) \
-              --image-id imageTag=${CIRCLE_SHA1} || echo "Scan already in progress or completed"
-      
-      - run:
-          name: Wait for and retrieve ECR scan results
-          command: |
-            source $BASH_ENV
-            REPO_NAME=$(basename $ECR_REPOSITORY_URL)
-            echo "Waiting for ECR scan to complete..."
-            
-            # Wait up to 5 minutes for scan to complete
-            for i in {1..30}; do
-              SCAN_STATUS=$(aws ecr describe-image-scan-findings \
-                --repository-name $REPO_NAME \
-                --image-id imageTag=${CIRCLE_SHA1} \
-                --query 'imageScanStatus.status' \
-                --output text 2>/dev/null || echo "IN_PROGRESS")
-              
-              echo "Scan status: $SCAN_STATUS"
-              if [ "$SCAN_STATUS" = "COMPLETE" ]; then
-                break
-              elif [ "$SCAN_STATUS" = "FAILED" ]; then
-                echo "ECR scan failed"
-                break
-              fi
-              
-              echo "Waiting for scan to complete... (attempt $i/30)"
-              sleep 10
-            done
-            
-            # Get scan results
-            echo "Retrieving ECR scan results..."
-            aws ecr describe-image-scan-findings \
-              --repository-name $REPO_NAME \
-              --image-id imageTag=${CIRCLE_SHA1} \
-              --output json > ecr-scan-results.json || echo "No scan results available yet"
-            
-            # Display summary
-            if [ -f ecr-scan-results.json ]; then
-              echo "ECR Scan Summary:"
-              cat ecr-scan-results.json | jq -r '.imageScanFindings.findingCounts // {}'
-            fi
+            trivy image --severity HIGH,CRITICAL inscribe-app:${CIRCLE_SHA1}
       
       - store_artifacts:
           path: trivy-report.json
           destination: security/trivy-report.json
-      
-      - store_artifacts:
-          path: ecr-scan-results.json
-          destination: security/ecr-scan-results.json
-
-  deploy:
-    executor: python-executor
-    steps:
-      - checkout
-      - aws-cli/setup
-      
-      - add_ssh_keys:
-          fingerprints:
-            - "$SSH_KEY_FINGERPRINT"
-      
-      - run:
-          name: Install Session Manager plugin
-          command: |
-            curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb" -o "session-manager-plugin.deb"
-            sudo dpkg -i session-manager-plugin.deb
-      
-      - run:
-          name: Get EC2 instance information
-          command: |
-            cd terraform
-            terraform init -input=false
-            INSTANCE_ID=$(terraform output -raw ec2_instance_id)
-            ECR_REPOSITORY_URL=$(terraform output -raw ecr_repository_url)
-            echo "export INSTANCE_ID=$INSTANCE_ID" >> $BASH_ENV
-            echo "export ECR_REPOSITORY_URL=$ECR_REPOSITORY_URL" >> $BASH_ENV
-            echo "Deploying to instance: $INSTANCE_ID"
-            echo "Using ECR repository: $ECR_REPOSITORY_URL"
-      
-      - run:
-          name: Create or update SSM document
-          command: |
-            # Try to create the document, update if it already exists
-            aws ssm create-document \
-              --name "InscribeAppDeployment" \
-              --document-type "Command" \
-              --content file://scripts/deploy-document.json || \
-            aws ssm update-document \
-              --name "InscribeAppDeployment" \
-              --content file://scripts/deploy-document.json \
-              --document-version "\$LATEST"
-      
-      - run:
-          name: Execute deployment via SSM document
-          command: |
-            source $BASH_ENV
-            
-            # Send deployment command using custom SSM document
-            COMMAND_ID=$(aws ssm send-command \
-              --instance-ids "$INSTANCE_ID" \
-              --document-name "InscribeAppDeployment" \
-              --parameters \
-                "imageTag=$CIRCLE_SHA1" \
-                "ecrRepositoryUrl=$ECR_REPOSITORY_URL" \
-                "awsRegion=$AWS_DEFAULT_REGION" \
-                "dbHost=$DB_HOST" \
-                "dbName=$DB_NAME" \
-                "dbUser=$DB_USER" \
-                "dbPassword=$DB_PASSWORD" \
-                "datadogApiKey=$DATADOG_API_KEY" \
-                "datadogAppKey=$DATADOG_APP_KEY" \
-              --output text \
-              --query "Command.CommandId")
-            
-            echo "Deployment command ID: $COMMAND_ID"
-            echo "export COMMAND_ID=$COMMAND_ID" >> $BASH_ENV
-      
-      - run:
-          name: Wait for deployment completion
-          command: |
-            source $BASH_ENV
-            
-            # Wait for command to complete
-            echo "Waiting for deployment to complete..."
-            aws ssm wait command-executed \
-              --command-id "$COMMAND_ID" \
-              --instance-id "$INSTANCE_ID"
-      
-      - run:
-          name: Check deployment results
-          command: |
-            source $BASH_ENV
-            
-            # Get command results
-            echo "Deployment results:"
-            aws ssm get-command-invocation \
-              --command-id "$COMMAND_ID" \
-              --instance-id "$INSTANCE_ID" \
-              --query "StandardOutputContent" \
-              --output text
-            
-            # Check if deployment was successful
-            STATUS=$(aws ssm get-command-invocation \
-              --command-id "$COMMAND_ID" \
-              --instance-id "$INSTANCE_ID" \
-              --query "Status" \
-              --output text)
-            
-            if [ "$STATUS" != "Success" ]; then
-              echo "Deployment failed!"
-              aws ssm get-command-invocation \
-                --command-id "$COMMAND_ID" \
-                --instance-id "$INSTANCE_ID" \
-                --query "StandardErrorContent" \
-                --output text
-              exit 1
-            fi
-            
-            echo "Deployment completed successfully!"
-
-  infrastructure:
-    executor: python-executor
-    steps:
-      - checkout
-      - aws-cli/setup
-      - terraform/install:
-          terraform_version: "1.9.5"
-      
-      - terraform/plan:
-          path: terraform
-      
-      - run:
-          name: Apply Terraform (if on main branch)
-          command: |
-            if [ "$CIRCLE_BRANCH" == "main" ]; then
-              cd terraform
-              terraform apply -auto-approve terraform.tfplan
-            else
-              echo "Skipping terraform apply - not on main branch"
-            fi
 
 workflows:
   build-test-deploy:
     jobs:
       - test
       
-      - infrastructure:
-          requires:
-            - test
-          filters:
-            branches:
-              only: main
-      
       - build-and-push:
           requires:
             - test
-            - infrastructure
-          context:
-            - aws-deployment
-          filters:
-            branches:
-              only: main
-      
-      - deploy:
-          requires:
-            - build-and-push
-            - infrastructure
-          context:
-            - aws-deployment
           filters:
             branches:
               only: main
