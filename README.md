@@ -72,10 +72,10 @@ This project demonstrates a complete microservice architecture with:
 - **CI/CD Pipeline**: CircleCI configuration for automated testing and deployment
 - **Observability**: Structured logging and health monitoring
 
-## Project Structure
+## Structure
 
 ```
-├── terraform/                 # Infrastructure as Code
+├── terraform/                 
 │   ├── modules/
 │   │   ├── ec2/               # EC2 instance configuration
 │   │   ├── rds/               # RDS database configuration
@@ -587,17 +587,6 @@ DD_SITE=datadoghq.com
    aws iam get-user
    ```
 
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Set up pre-commit hooks (`./scripts/setup-pre-commit.sh`)
-4. Make your changes and ensure they pass all checks
-5. Run the full test suite (`pytest tests/`)
-6. Commit your changes (pre-commit hooks will run automatically)
-7. Push to your fork (`git push origin feature/amazing-feature`)
-8. Create a Pull Request
-
 ### Code Quality Standards
 
 - **Black**: Code formatting (line length: 88)
@@ -605,15 +594,6 @@ DD_SITE=datadoghq.com
 - **flake8**: Linting and style checking
 - **pytest**: Minimum 80% test coverage
 - **Bandit**: Security scanning for vulnerabilities
-
-### Documentation
-
-Documentation is organized in the `docs.bak/` directory:
-- API examples and guides
-- Deployment and configuration instructions
-- Security and compliance documentation
-- Troubleshooting guides
-
 
 
 #### Troubleshooting
