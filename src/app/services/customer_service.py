@@ -1,5 +1,43 @@
 """
-Customer business logic and database operations
+Customer business logic and database operations.
+
+This module provides the service layer for customer-related operations in the
+Inscribe Customer Data Processing Service. It encapsulates all business logic
+and database interactions for customer management, including:
+
+- Customer creation with data validation
+- Customer retrieval (individual and bulk)
+- Customer updates with partial data support
+- Customer deletion with proper error handling
+- SQL injection prevention through parameterized queries
+- Comprehensive logging and error handling
+
+The service layer acts as an intermediary between the API endpoints and the
+database, ensuring business rules are enforced and data integrity is maintained.
+
+Example:
+    ```python
+    from app.services.customer_service import CustomerService
+    from app.schemas.customer import CustomerCreate
+
+    # Create a new customer
+    customer_data = CustomerCreate(
+        first_name="John",
+        last_name="Doe",
+        email="john.doe@example.com"
+    )
+    result = CustomerService.create_customer(customer_data)
+    ```
+
+Security Features:
+- Parameterized SQL queries prevent SQL injection attacks
+- Input validation through Pydantic schemas
+- Comprehensive error handling and logging
+- Database transaction management
+
+Note:
+    All database operations use the connection manager with proper
+    context management for connection pooling and error recovery.
 """
 
 from typing import Any, Dict, List, Optional
@@ -14,11 +52,75 @@ logger = get_logger(__name__)
 
 
 class CustomerService:
-    """Service layer for customer operations"""
+    """
+    Service layer for customer operations.
+
+    This class provides business logic and database operations for customer
+    management. It serves as the service layer between API endpoints and
+    the database, ensuring proper data validation, error handling, and
+    business rule enforcement.
+
+    All methods are static as this service is stateless and doesn't require
+    instance data. Database connections are managed through the database
+    manager's context managers for proper resource cleanup.
+
+    Example:
+        ```python
+        # Create a customer
+        customer_data = CustomerCreate(
+            first_name="Jane",
+            last_name="Smith",
+            email="jane.smith@example.com"
+        )
+        result = CustomerService.create_customer(customer_data)
+
+        # Get all customers
+        customers = CustomerService.get_all_customers()
+
+        # Update a customer
+        update_data = CustomerUpdate(email="new.email@example.com")
+        updated = CustomerService.update_customer(customer_id, update_data)
+        ```
+
+    Note:
+        All database operations use parameterized queries to prevent
+        SQL injection attacks and include comprehensive error handling.
+    """
 
     @staticmethod
     def create_customer(customer_data: CustomerCreate) -> Dict[str, Any]:
-        """Create a new customer"""
+        """
+        Create a new customer in the database.
+
+        Args:
+            customer_data (CustomerCreate): Validated customer data from Pydantic schema
+
+        Returns:
+            Dict[str, Any]: The created customer record with generated ID and timestamps
+
+        Raises:
+            pymysql.Error: For database-related errors (connection, constraint violations, etc.)
+            Exception: For unexpected errors during customer creation
+
+        Example:
+            ```python
+            customer_data = CustomerCreate(
+                first_name="John",
+                last_name="Doe",
+                email="john.doe@example.com",
+                phone="+1-555-0123",
+                address="123 Main St",
+                date_of_birth=date(1990, 1, 1)
+            )
+            result = CustomerService.create_customer(customer_data)
+            print(f"Created customer with ID: {result['id']}")
+            ```
+
+        Note:
+            - Uses parameterized queries to prevent SQL injection
+            - Returns the complete customer record including auto-generated fields
+            - Logs successful creation for audit purposes
+        """
         insert_sql = """
         INSERT INTO customers (first_name, last_name, email, phone, address, date_of_birth)
         VALUES (%s, %s, %s, %s, %s, %s)

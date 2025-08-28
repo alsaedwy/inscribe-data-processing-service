@@ -1,5 +1,40 @@
 """
-FastAPI application factory for Inscribe Customer Data Service
+FastAPI application factory for Inscribe Customer Data Service.
+
+This module provides the main FastAPI application factory and configuration
+for the Inscribe Customer Data Processing Service. It includes:
+
+- Application lifecycle management
+- Security middleware and authentication
+- Request/response logging
+- Database initialization and management
+- Legacy API endpoints for backward compatibility
+- Health check endpoints
+- CORS configuration
+- Error handling and security headers
+
+The application supports both modern API endpoints (under /api/v1/) and
+legacy endpoints for backward compatibility with existing tests and clients.
+
+Example:
+    To run the application:
+
+    ```python
+    from app.main import app
+    import uvicorn
+
+    uvicorn.run(app, host="0.0.0.0", port=8080)
+    ```
+
+Attributes:
+    app (FastAPI): The configured FastAPI application instance
+    logger (Logger): Application logger instance
+    security (HTTPBasic): HTTP Basic authentication handler
+
+Note:
+    The application automatically configures itself based on the environment
+    (development/production) and loads secure credentials from AWS Secrets Manager
+    in production environments.
 """
 
 import secrets
@@ -47,16 +82,63 @@ security = HTTPBasic()
 
 # Legacy DatabaseManager for backwards compatibility
 class DatabaseManager:
-    """Legacy database manager for backward compatibility with tests"""
+    """
+    Legacy database manager for backward compatibility with tests.
+
+    This class provides a compatibility layer for existing tests and code
+    that expects the old DatabaseManager interface. It delegates to the
+    new modular database manager internally.
+
+    Attributes:
+        None
+
+    Note:
+        This class is deprecated and maintained only for backward compatibility.
+        New code should use app.database.manager.db_manager directly.
+    """
 
     @staticmethod
     def get_connection():
-        """Get connection using the modular database manager"""
+        """
+        Get database connection using the modular database manager.
+
+        Returns:
+            pymysql.Connection: Active database connection
+
+        Raises:
+            DatabaseConnectionError: If connection cannot be established
+        """
         return db_manager.get_connection()
 
 
 def authenticate_simple(credentials: HTTPBasicCredentials = Depends(security)) -> str:
-    """Simple authentication for legacy endpoints"""
+    """
+    Simple HTTP Basic authentication for legacy endpoints.
+
+    Validates user credentials against configured API credentials using
+    timing-safe comparison to prevent timing attacks.
+
+    Args:
+        credentials (HTTPBasicCredentials): HTTP Basic auth credentials
+            from the Authorization header
+
+    Returns:
+        str: The authenticated username
+
+    Raises:
+        HTTPException: 401 Unauthorized if credentials are invalid
+
+    Example:
+        ```python
+        @app.get("/protected")
+        async def protected_endpoint(username: str = Depends(authenticate_simple)):
+            return {"message": f"Hello {username}"}
+        ```
+
+    Note:
+        Uses secrets.compare_digest() for timing-safe string comparison
+        to prevent timing-based attacks on authentication.
+    """
     expected_username, expected_password = settings.get_api_credentials()
 
     correct_username = secrets.compare_digest(credentials.username, expected_username)
@@ -74,7 +156,28 @@ def authenticate_simple(credentials: HTTPBasicCredentials = Depends(security)) -
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan management"""
+    """
+    Manage FastAPI application lifespan events.
+
+    Handles application startup and shutdown procedures including:
+    - Credential loading from AWS Secrets Manager
+    - Database schema setup and initialization
+    - Connection pool management
+    - Graceful shutdown procedures
+
+    Args:
+        app (FastAPI): The FastAPI application instance
+
+    Yields:
+        None: Control is yielded back to FastAPI during normal operation
+
+    Raises:
+        Exception: Critical startup failures that prevent application start
+
+    Note:
+        Non-critical failures (like credential loading) are logged as warnings
+        but don't prevent application startup to maintain availability.
+    """
     # Startup
     log_application_startup(logger, settings.version, settings.environment)
 
@@ -112,7 +215,35 @@ async def lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
-    """Create and configure the FastAPI application"""
+    """
+    Create and configure the FastAPI application instance.
+
+    Factory function that creates a fully configured FastAPI application
+    with all necessary middleware, routes, and security configurations.
+
+    Returns:
+        FastAPI: Configured application instance ready for deployment
+
+    Features:
+        - CORS middleware configuration
+        - Request/response logging middleware
+        - Security headers middleware
+        - API route registration
+        - Legacy endpoint compatibility
+        - Health check endpoints
+        - Error handling
+        - Optional Datadog tracing integration
+
+    Example:
+        ```python
+        app = create_app()
+        uvicorn.run(app, host="0.0.0.0", port=8080)
+        ```
+
+    Note:
+        The application is configured differently for development and production
+        environments. Documentation endpoints are disabled in production.
+    """
 
     app = FastAPI(
         title=settings.app_name,

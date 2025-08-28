@@ -1,5 +1,40 @@
 """
-Configuration management for the Inscribe Customer Data Service
+Configuration management for the Inscribe Customer Data Service.
+
+This module provides centralized configuration management using Pydantic settings
+for the Inscribe Customer Data Processing Service. It handles:
+
+- Application settings (name, version, debug mode, environment)
+- Database configuration (traditional and IAM authentication)
+- Security settings (API credentials, CORS, Secrets Manager)
+- Observability settings (Datadog, logging)
+- Health check configuration
+- Environment-specific configurations
+
+The configuration automatically adapts based on the deployment environment
+(development, staging, production) and supports both traditional database
+authentication and AWS IAM database authentication.
+
+Example:
+    ```python
+    from app.core.config import settings
+    # Access configuration values
+    print(f"App running on port: {settings.port}")
+    print(f"Environment: {settings.environment}")
+
+    # Check environment
+    if settings.is_production:
+        # Production-specific logic
+        pass
+    ```
+
+Attributes:
+    settings (Settings): Global settings instance configured from environment
+
+Note:
+    Configuration values are loaded from environment variables and .env files
+    using Pydantic's BaseSettings. In production, sensitive values like
+    credentials are retrieved from AWS Secrets Manager.
 """
 
 from typing import List, Optional
@@ -9,7 +44,61 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    """Application settings"""
+    """
+    Application settings and configuration management.
+
+    Centralized configuration class that handles all application settings
+    including database connections, authentication, observability, and
+    environment-specific configurations.
+
+    Attributes:
+        app_name (str): Name of the application
+        version (str): Application version
+        debug (bool): Debug mode flag
+        environment (str): Deployment environment (development/staging/production)
+        port (int): Port number for the application server
+
+        db_host (str): Database host address
+        db_port (int): Database port number
+        db_name (str): Database name
+        db_user (str): Database username
+        db_password (Optional[str]): Database password
+
+        use_iam_auth (bool): Whether to use AWS IAM database authentication
+        iam_db_user (str): IAM database username
+        aws_region (str): AWS region for services
+
+        basic_auth_username (str): API basic auth username
+        basic_auth_password (str): API basic auth password
+
+        use_secrets_manager (bool): Whether to use AWS Secrets Manager
+        api_credentials_secret_name (str): Name of the secrets manager secret
+
+        cors_origins (List[str]): Allowed CORS origins
+
+        datadog_api_key (Optional[str]): Datadog API key
+        datadog_service_name (str): Service name for Datadog
+
+        log_level (str): Logging level
+        log_format (str): Log format (json/text)
+
+    Example:
+        ```python
+        settings = Settings()
+
+        # Check environment
+        if settings.is_production:
+            # Production configuration
+            pass
+
+        # Get database config
+        db_config = settings.database_config
+        ```
+
+    Note:
+        Settings are automatically loaded from environment variables and .env files.
+        Validation is performed on critical settings to ensure application security.
+    """
 
     # Application settings
     app_name: str = "Inscribe Customer Data Service"
@@ -50,7 +139,16 @@ class Settings(BaseSettings):
     @field_validator("use_secrets_manager", mode="before")
     @classmethod
     def set_secrets_manager_default(cls, v, info):
-        """Enable secrets manager by default in production"""
+        """
+        Enable secrets manager by default in production environment.
+
+        Args:
+            v: The input value for use_secrets_manager
+            info: Validation info containing other field data
+
+        Returns:
+            bool: True if production environment, otherwise the original value
+        """
         if "environment" in info.data and info.data["environment"] == "production":
             return True
         return v
@@ -76,6 +174,18 @@ class Settings(BaseSettings):
     @field_validator("environment")
     @classmethod
     def validate_environment(cls, v):
+        """
+        Validate that environment is one of the allowed values.
+
+        Args:
+            v (str): Environment value to validate
+
+        Returns:
+            str: Validated environment value
+
+        Raises:
+            ValueError: If environment is not in allowed list
+        """
         allowed_environments = ["development", "staging", "production"]
         if v not in allowed_environments:
             raise ValueError(f"Environment must be one of: {allowed_environments}")
@@ -84,6 +194,18 @@ class Settings(BaseSettings):
     @field_validator("log_level")
     @classmethod
     def validate_log_level(cls, v):
+        """
+        Validate that log level is one of the standard logging levels.
+
+        Args:
+            v (str): Log level value to validate
+
+        Returns:
+            str: Validated and uppercased log level
+
+        Raises:
+            ValueError: If log level is not in allowed list
+        """
         allowed_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
         if v.upper() not in allowed_levels:
             raise ValueError(f"Log level must be one of: {allowed_levels}")
@@ -92,6 +214,18 @@ class Settings(BaseSettings):
     @field_validator("log_format")
     @classmethod
     def validate_log_format(cls, v):
+        """
+        Validate that log format is one of the supported formats.
+
+        Args:
+            v (str): Log format value to validate
+
+        Returns:
+            str: Validated log format
+
+        Raises:
+            ValueError: If log format is not in allowed list
+        """
         allowed_formats = ["json", "text"]
         if v not in allowed_formats:
             raise ValueError(f"Log format must be one of: {allowed_formats}")
@@ -99,22 +233,51 @@ class Settings(BaseSettings):
 
     @property
     def is_production(self) -> bool:
-        """Check if running in production environment"""
+        """
+        Check if the application is running in production environment.
+
+        Returns:
+            bool: True if environment is 'production', False otherwise
+        """
         return self.environment == "production"
 
     @property
     def is_development(self) -> bool:
-        """Check if running in development environment"""
+        """
+        Check if the application is running in development environment.
+
+        Returns:
+            bool: True if environment is 'development', False otherwise
+        """
         return self.environment == "development"
 
     @property
     def datadog_enabled(self) -> bool:
-        """Check if Datadog is enabled"""
+        """
+        Check if Datadog observability is enabled.
+
+        Returns:
+            bool: True if Datadog API key is configured, False otherwise
+        """
         return self.datadog_api_key is not None
 
     @property
     def database_config(self) -> dict:
-        """Get database configuration based on authentication method"""
+        """
+        Get database configuration based on authentication method.
+
+        Returns a database configuration dictionary that varies based on
+        whether IAM authentication or traditional username/password
+        authentication is being used.
+
+        Returns:
+            dict: Database configuration parameters for connection
+
+        Note:
+            For IAM authentication, the configuration includes SSL settings
+            and IAM-specific parameters. For traditional authentication,
+            it includes username and password directly.
+        """
         base_config = {
             "host": self.db_host,
             "port": self.db_port,
@@ -137,10 +300,24 @@ class Settings(BaseSettings):
 
     def get_api_credentials(self) -> tuple[str, str]:
         """
-        Get API credentials - either from environment variables (dev) or Secrets Manager (prod)
+        Get API credentials from Secrets Manager or environment variables.
+
+        Retrieves API authentication credentials, preferring AWS Secrets Manager
+        in production environments and falling back to environment variables
+        in development or if Secrets Manager is unavailable.
 
         Returns:
-            Tuple of (username, password)
+            tuple[str, str]: A tuple containing (username, password)
+
+        Note:
+            In production with Secrets Manager enabled, this method attempts
+            to retrieve credentials from the configured secret. If that fails,
+            it falls back to environment variables with a warning logged.
+
+        Example:
+            ```python
+            username, password = settings.get_api_credentials()
+            ```
         """
         if self.use_secrets_manager:
             try:

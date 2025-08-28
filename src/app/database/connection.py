@@ -1,9 +1,54 @@
 """
 Database connection manager with support for both traditional and IAM authentication.
 
-This module demonstrates the evolution from username/password to IAM authentication:
-1. Traditional: Uses static username/password (security risk)
-2. IAM: Uses temporary tokens generated from IAM credentials (secure)
+This module provides secure database connectivity for the Inscribe Customer Data Service
+with support for both traditional username/password authentication and AWS IAM
+database authentication. It demonstrates the evolution from static credentials
+to dynamic, short-lived IAM tokens for enhanced security.
+
+Key Features:
+- Dual authentication modes (traditional and IAM)
+- Connection pooling and retry logic
+- Automatic database initialization
+- Secure token management for IAM authentication
+- SSL/TLS support for encrypted connections
+- Comprehensive error handling and logging
+
+Authentication Methods:
+1. Traditional: Uses static username/password from environment variables
+2. IAM: Uses temporary tokens generated from IAM credentials (15-minute expiry)
+
+Example:
+    ```python
+    from app.database.connection import DatabaseConnection
+
+    # Initialize connection manager
+    db = DatabaseConnection()
+
+    # Use connection
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM customers")
+        results = cursor.fetchall()
+    ```
+
+Security Benefits of IAM Authentication:
+- No static passwords stored in environment
+- Automatic token rotation (15-minute expiry)
+- Centralized access control through IAM policies
+- Audit trail through AWS CloudTrail
+- SSL/TLS encryption enforced
+
+Environment Variables:
+    Traditional Auth:
+        DB_HOST, DB_USER, DB_PASSWORD, USE_IAM_AUTH=false
+
+    IAM Auth:
+        DB_HOST, IAM_DB_USER, USE_IAM_AUTH=true, AWS_REGION
+
+Note:
+    IAM authentication requires proper IAM roles and policies configured
+    in AWS, as well as the RDS instance configured for IAM authentication.
 """
 
 import logging
@@ -19,7 +64,41 @@ logger = logging.getLogger(__name__)
 
 
 class DatabaseConnection:
-    """Enhanced database manager supporting both traditional and IAM authentication"""
+    """
+    Enhanced database manager supporting both traditional and IAM authentication.
+
+    This class provides a comprehensive database connection management system
+    that supports both traditional username/password authentication and
+    AWS IAM database authentication for enhanced security.
+
+    Attributes:
+        db_host (str): Database hostname
+        db_port (int): Database port number
+        db_name (str): Database name
+        db_user (str): Database username (traditional auth)
+        db_password (str): Database password (traditional auth)
+        use_iam_auth (bool): Whether to use IAM authentication
+        iam_db_user (str): IAM database username
+        aws_region (str): AWS region for RDS client
+        rds_client (boto3.client): RDS client for token generation (IAM auth only)
+
+    Example:
+        ```python
+        # Initialize with environment variables
+        db = DatabaseConnection()
+
+        # Use connection context manager
+        with db.get_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT COUNT(*) FROM customers")
+                count = cursor.fetchone()[0]
+        ```
+
+    Note:
+        The connection manager automatically initializes the database schema
+        and tests connectivity during initialization. It supports retry logic
+        for robust startup in containerized environments.
+    """
 
     def __init__(self):
         self.db_host = os.getenv("DB_HOST", "localhost")
@@ -40,7 +119,20 @@ class DatabaseConnection:
         self._initialize_database_with_retry()
 
     def _get_connection_config(self) -> Dict[str, Any]:
-        """Get database connection configuration based on authentication method"""
+        """
+        Get database connection configuration based on authentication method.
+
+        Returns the appropriate database connection configuration dictionary
+        based on whether traditional or IAM authentication is configured.
+
+        Returns:
+            Dict[str, Any]: Database connection configuration parameters
+
+        Note:
+            For IAM authentication, this method generates a temporary token
+            and includes SSL configuration required for IAM auth. For traditional
+            authentication, it uses static credentials from environment variables.
+        """
 
         base_config = {
             "host": self.db_host,
