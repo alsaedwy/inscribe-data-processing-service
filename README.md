@@ -621,10 +621,5 @@ DD_SITE=datadoghq.com
    # Check database connectivity
    docker exec -it inscribe-app python -c "from src.app.database.connection import get_db_connection; print('DB OK' if get_db_connection() else 'DB FAIL')"
    ```
-3. **Create an issue** in the repository with:
-   - Clear description of the problem
-   - Steps to reproduce
-   - Relevant log excerpts
-   - Environment details
 
 ---
