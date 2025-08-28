@@ -8,14 +8,14 @@ echo "🏗️  Deploying Inscribe Data Processing Service Infrastructure..."
 
 # Check if AWS CLI is configured
 if ! aws sts get-caller-identity &> /dev/null; then
-    echo "❌ AWS CLI is not configured or credentials are invalid."
+    echo "ERROR: AWS CLI is not configured or credentials are invalid."
     echo "Please run 'aws configure' first."
     exit 1
 fi
 
 # Check if Terraform is installed
 if ! command -v terraform &> /dev/null; then
-    echo "❌ Terraform is not installed. Please install Terraform first."
+    echo "ERROR: Terraform is not installed. Please install Terraform first."
     exit 1
 fi
 
@@ -23,15 +23,15 @@ fi
 cd terraform
 
 # Initialize Terraform
-echo "🔧 Initializing Terraform..."
+echo "Initializing Terraform..."
 terraform init
 
 # Validate configuration
-echo "✅ Validating Terraform configuration..."
+echo "Validating Terraform configuration..."
 terraform validate
 
 # Plan deployment
-echo "📋 Creating deployment plan..."
+echo "Creating deployment plan..."
 terraform plan -out=tfplan
 
 # Ask for confirmation
@@ -58,11 +58,11 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     echo ""
     echo "3. Test the deployed application:"
     echo "   cd /Users/alaa/Documents/code/inscribe-data-processing-service"
-    echo "   ./scripts/secure_api_test.sh http://$EC2_IP:8000"
+    echo "   ./scripts/secure_api_test.sh http://$EC2_IP:8080"
     echo ""
     echo "4. Access the application:"
-    echo "   Application URL: http://$EC2_IP:8000"
-    echo "   API Documentation: http://$EC2_IP:8000/docs"
+    echo "   Application URL: http://$EC2_IP:8080"
+    echo "   API Documentation: http://$EC2_IP:8080/docs"
     echo ""
     echo "Management commands (on EC2 instance):"
     echo "   sudo systemctl status inscribe-app    # Check service status"

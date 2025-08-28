@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     version: str = "1.0.0"
     debug: bool = Field(default=False, env="DEBUG")
     environment: str = Field(default="development", env="ENVIRONMENT")
-    port: int = Field(default=8000, env="PORT")
+    port: int = Field(default=8080, env="PORT")
 
     # Database settings
     db_host: str = Field(..., env="DB_HOST")

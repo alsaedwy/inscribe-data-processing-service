@@ -139,7 +139,7 @@ jobs:
             # Test the built image
             echo "Testing Docker image..."
             docker run --rm -d --name test-container \
-              -p 8000:8000 \
+              -p 8080:8080 \
               -e DB_HOST=localhost \
               -e DB_NAME=test \
               -e DB_USER=test \

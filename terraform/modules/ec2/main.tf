@@ -45,7 +45,7 @@ systemctl enable docker
 usermod -a -G docker ec2-user
 
 # Install Docker Compose
-echo "🔧 Installing Docker Compose..."
+echo "Installing Docker Compose..."
 curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 chmod +x /usr/local/bin/docker-compose
 
@@ -72,16 +72,16 @@ echo "🔐 Retrieving database credentials from Secrets Manager..."
 for i in {1..5}; do
     DB_PASSWORD=$(aws secretsmanager get-secret-value --secret-id "${var.rds_credentials_secret_name}" --region eu-west-1 --query SecretString --output text 2>/dev/null | jq -r '.password' 2>/dev/null)
     if [ ! -z "$DB_PASSWORD" ] && [ "$DB_PASSWORD" != "null" ]; then
-        echo "✅ Successfully retrieved database password"
+        echo "Successfully retrieved database password"
         break
     else
-        echo "⚠️  Attempt $i: Failed to retrieve database password, retrying in 10 seconds..."
+        echo "Attempt $i: Failed to retrieve database password, retrying in 10 seconds..."
         sleep 10
     fi
 done
 
 if [ -z "$DB_PASSWORD" ] || [ "$DB_PASSWORD" = "null" ]; then
-    echo "❌ Failed to retrieve database password from Secrets Manager"
+    echo "Failed to retrieve database password from Secrets Manager"
     echo "🔄 Using placeholder - application will retrieve at runtime"
     DB_PASSWORD="RETRIEVE_FROM_SECRETS_MANAGER"
 fi
@@ -109,12 +109,12 @@ services:
   app:
     build: .
     ports:
-      - "8000:8000"
+      - "8080:8080"
     env_file:
       - .env
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -147,10 +147,10 @@ echo "⏳ Waiting for application to start..."
 sleep 60
 
 # Test the application
-echo "🧪 Testing application health..."
+echo "Testing application health..."
 for i in {1..10}; do
-    if curl -f http://localhost:8000/health; then
-        echo "✅ Application is healthy!"
+    if curl -f http://localhost:8080/health; then
+        echo "Application is healthy!"
         break
     else
         echo "⏳ Waiting for application... (attempt $i/10)"
@@ -159,7 +159,7 @@ for i in {1..10}; do
 done
 
 # Create management script
-echo "🔧 Creating management script..."
+echo "Creating management script..."
 cat > /opt/inscribe-app/manage.sh << 'MANAGE_EOF'
 #!/bin/bash
 cd /opt/inscribe-app
@@ -181,7 +181,7 @@ case "$1" in
         docker-compose -f docker-compose.prod.yml ps
         ;;
     health)
-        curl -f http://localhost:8000/health || echo "Health check failed"
+        curl -f http://localhost:8080/health || echo "Health check failed"
         ;;
     rebuild)
         docker-compose -f docker-compose.prod.yml down
@@ -224,11 +224,11 @@ systemctl enable inscribe-app.service
 
 # Final status
 echo ""
-echo "🎉 Deployment completed at $(date)"
+echo "Deployment completed at $(date)"
 echo ""
 echo "📊 Service Information:"
-echo "- Application URL: http://$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4):8000"
-echo "- Health Check: http://$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4):8000/health"
+echo "- Application URL: http://$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4):8080"
+echo "- Health Check: http://$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4):8080/health"
 echo "- Admin Credentials: Retrieved from AWS Secrets Manager"
 echo ""
 echo "🛠️  Management Commands:"
@@ -236,7 +236,7 @@ echo "- Status: sudo systemctl status inscribe-app"
 echo "- Logs: /opt/inscribe-app/manage.sh logs"
 echo "- Health: /opt/inscribe-app/manage.sh health"
 echo ""
-echo "📝 Log files:"
+echo "Log files:"
 echo "- Deployment: /var/log/user-data.log"
 echo "- Application: /opt/inscribe-app (docker-compose logs)"
 

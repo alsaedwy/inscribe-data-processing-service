@@ -208,7 +208,7 @@ data "aws_iam_policy_document" "ecr_access_policy" {
 }
 
 resource "aws_iam_policy" "ecr_access_policy" {
-  name_prefix = "ecr-access-${var.repository_name}-"
+  name_prefix = "ecr-access-"
   description = "IAM policy for ECR access to ${var.repository_name}"
   policy      = data.aws_iam_policy_document.ecr_access_policy.json
 

@@ -7,8 +7,8 @@ resource "aws_security_group" "ec2_sg" {
   # HTTP access for the microservice
   ingress {
     description = "HTTP"
-    from_port   = 8000
-    to_port     = 8000
+    from_port   = 8080
+    to_port     = 8080
     protocol    = "tcp"
     cidr_blocks = var.allowed_cidr_blocks
   }

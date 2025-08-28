@@ -22,7 +22,7 @@ output "rds_port" {
 
 output "application_url" {
   description = "URL to access the microservice"
-  value       = "http://${module.ec2.public_ip}:8000"
+  value       = "http://${module.ec2.public_ip}:8080"
 }
 
 # ECR Repository outputs

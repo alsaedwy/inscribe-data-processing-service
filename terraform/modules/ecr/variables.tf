@@ -3,7 +3,7 @@
 variable "repository_name" {
   description = "Name of the ECR repository"
   type        = string
-  default     = "inscribe/customer-data-service"
+  default     = "inscribe-customer-data-service"
 }
 
 variable "environment" {

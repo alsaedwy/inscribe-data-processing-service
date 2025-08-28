@@ -1,4 +1,63 @@
-# Inscribe Data Processing Service
+# # Inscribe Data Processing Service
+
+A secure, scalable microservice architecture for customer data management, built with FastAPI, containerized with Docker, and deployed on AWS infrastructure using Terraform.
+
+## Architecture Overview
+
+This project demonstrates a complete microservice architecture with:
+
+- **Infrastructure as Code**: Modular Terraform configuration for AWS resources
+- **Secure Microservice**: FastAPI-based service with input validation and SQL injection prevention
+- **Containerization**: Docker containers with ECR integration for consistent deployment
+- **CI/CD Pipeline**: Separated CircleCI configurations for development and infrastructure
+- **Code Quality**: Pre-commit hooks with automated formatting, linting, and testing
+- **Observability**: Structured logging and comprehensive health monitoring
+
+## Project Structure
+
+```
+├── .circleci/                 # CI/CD Configuration
+│   ├── config.yml             # Development pipeline (tests, build)
+│   └── infra-config.yml       # Infrastructure pipeline (deploy)
+├── src/                       # Python Microservice
+│   ├── main.py                # Application entry point
+│   └── app/
+│       ├── main.py            # FastAPI application
+│       ├── api/v1/            # API endpoints
+│       ├── core/              # Core configuration and security
+│       ├── database/          # Database connection and management
+│       ├── models/            # Data models
+│       ├── schemas/           # Pydantic schemas
+│       └── services/          # Business logic services
+├── terraform/                 # Infrastructure as Code
+│   ├── modules/
+│   │   ├── ec2/               # EC2 instance with auto-deployment
+│   │   ├── rds/               # RDS MySQL database
+│   │   ├── ecr/               # ECR container registry
+│   │   ├── secrets/           # AWS Secrets Manager
+│   │   ├── security/          # Security groups
+│   │   ├── iam/               # IAM roles and policies
+│   │   └── keypair/           # SSH key management
+│   ├── main.tf                # Main Terraform configuration
+│   ├── variables.tf           # Input variables
+│   └── outputs.tf             # Output values
+├── scripts/                   # Utility Scripts
+│   ├── secure_api_test.sh     # Secure API testing with AWS Secrets
+│   └── setup-pre-commit.sh    # Pre-commit hooks setup
+├── tests/                     # Unit Tests
+│   ├── test_main.py           # Main application tests
+│   ├── test_modular_app.py    # Modular application tests
+│   └── conftest.py            # Test configuration
+├── docs.bak/                  # Documentation Archive
+├── .pre-commit-config.yaml    # Pre-commit hooks configuration
+├── Dockerfile                 # Container configuration
+├── docker-compose.yml         # Local development setup
+├── docker-compose.test.yml    # Testing environment setup
+├── requirements.txt           # Python dependencies
+├── test-requirements.txt      # Testing dependencies
+├── init.sql                   # Database initialization
+└── deploy.sh                  # Interactive deployment script
+```nscribe Data Processing Service
 
 A secure, s**Free Tier Note**: This project is configured to use only AWS Free Tier resources. See `FREE_TIER_COMPLIANCE.md` for details on staying within free limits.alable microservice architecture for customer data management, built with FastAPI, containerized with Docker, and deployed on AWS infrastructure using Terraform.
 
@@ -42,10 +101,8 @@ This project demonstrates a complete microservice architecture with:
 - Docker and Docker Compose
 - AWS CLI configured with appropriate permissions
 - Terraform >= 1.0
-- Python 3.11+ (for local development)
-- **AWS Free Tier eligible account** (for cost-free deployment)
-
-> 💰 **Free Tier Note**: This project is configured to use only AWS Free Tier resources. See `FREE_TIER_COMPLIANCE.md` for details on staying within free limits.
+- Python 3.13 (for local development)
+- Git with pre-commit hooks support
 
 ### Local Development
 
@@ -55,8 +112,12 @@ This project demonstrates a complete microservice architecture with:
    cd inscribe-data-processing-service
    ```
 
-2. **Set up environment variables**:
+2. **Set up development environment**:
    ```bash
+   # Install pre-commit hooks for code quality
+   ./scripts/setup-pre-commit.sh
+   
+   # Set up environment variables
    cp .env.example .env
    # Edit .env with your configuration
    ```
@@ -68,11 +129,11 @@ This project demonstrates a complete microservice architecture with:
 
 4. **Test the API**:
    ```bash
-   ./scripts/secure_api_test.sh http://localhost:8000
+   ./scripts/secure_api_test.sh http://localhost:8080
    ```
 
 5. **Access API documentation**:
-   Open http://localhost:8000/docs in your browser
+   Open http://localhost:8080/docs in your browser
 
 ### Infrastructure Setup
 
@@ -95,8 +156,9 @@ This project demonstrates a complete microservice architecture with:
    ```
 
    This single command will:
-   - Deploy AWS infrastructure (VPC, EC2, RDS, Security Groups)
-   - Automatically install and configure the application on EC2
+   - Deploy AWS infrastructure (VPC, EC2, RDS, ECR, Security Groups)
+   - Automatically build and push container images to ECR
+   - Install and configure the application on EC2
    - Set up monitoring and management tools
 
 4. **Access your deployed instance**:
@@ -108,8 +170,6 @@ This project demonstrates a complete microservice architecture with:
    terraform output ssm_connect_command
    # Or use AWS Console: EC2 → Instance → Connect → Session Manager
    ```
-
-   **For detailed access instructions, see [EC2_ACCESS_GUIDE.md](./EC2_ACCESS_GUIDE.md)**
 
 5. **Monitor deployment progress**:
    ```bash
@@ -123,10 +183,8 @@ This project demonstrates a complete microservice architecture with:
 6. **Test the deployment**:
    ```bash
    # Wait 5-10 minutes for complete deployment, then test
-   ./scripts/secure_api_test.sh http://<EC2_PUBLIC_IP>:8000
+   ./scripts/secure_api_test.sh http://<EC2_PUBLIC_IP>:8080
    ```
-
-**For complete setup instructions, see [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)**
 
 ## Security Features
 
@@ -137,16 +195,16 @@ This project demonstrates a complete microservice architecture with:
 - **Environment Separation**: Different credential sets for development, staging, and production
 
 ### Secure API Testing
-Always use the provided secure testing script instead of manual curl commands:
+While testing locally, you can use the provided secure testing script instead of manual curl commands:
 ```bash
 # Health check
-./scripts/secure_api_test.sh http://localhost:8000/health
+./scripts/secure_api_test.sh http://localhost:8080/health
 
 # Get customers
-./scripts/secure_api_test.sh http://localhost:8000/customers
+./scripts/secure_api_test.sh http://localhost:8080/customers
 
 # Create customer
-./scripts/secure_api_test.sh http://localhost:8000/customers POST '{
+./scripts/secure_api_test.sh http://localhost:8080/customers POST '{
   "first_name": "John",
   "last_name": "Doe", 
   "email": "john@example.com"
@@ -239,13 +297,27 @@ Authorization: Basic <credentials>
 
 ## Testing
 
-### Run Unit Tests
+### Unit Tests
 ```bash
 # Install test dependencies
 pip install -r test-requirements.txt
 
-# Run tests
-pytest tests/ -v
+# Run tests with coverage
+pytest tests/ -v --cov=src --cov-report=xml --cov-report=html
+
+# Run specific test file
+pytest tests/test_main.py -v
+```
+
+### Pre-commit Testing
+```bash
+# Run all pre-commit hooks
+pre-commit run --all-files
+
+# Run specific hooks
+pre-commit run black
+pre-commit run flake8
+pre-commit run pytest
 ```
 
 ### Security Testing
@@ -258,55 +330,59 @@ bandit -r src/
 safety check
 ```
 
-### Load Testing
+### API Testing
 ```bash
 # Use the secure testing script for API calls
-./scripts/secure_api_test.sh http://localhost:8000
+./scripts/secure_api_test.sh http://localhost:8080
 
-# Or test specific endpoints (after retrieving credentials securely)
-# Example: Create a customer
-echo '{"first_name":"Test","last_name":"User","email":"test@example.com"}' | \
-./scripts/secure_api_test.sh http://localhost:8000
+# Test specific endpoints
+./scripts/secure_api_test.sh http://localhost:8080/health
+./scripts/secure_api_test.sh http://localhost:8080/customers
 ```
 
 ## CI/CD Pipeline
 
-The CircleCI pipeline includes:
+The project uses separated CircleCI configurations for different purposes:
 
-1. **Test Stage**:
-   - Unit test execution
-   - Security scanning with Bandit and Safety
-   - Code quality checks
+### Development Pipeline (.circleci/config.yml)
+- **Test Stage**: Unit test execution with coverage reporting
+- **Code Quality**: Black formatting, isort import sorting, flake8 linting
+- **Security Scanning**: Bandit security analysis, dependency vulnerability checks
+- **Build Stage**: Docker image building and ECR integration
+- **Container Security**: Trivy vulnerability scanning
 
-2. **Build Stage**:
-   - Docker image building
-   - Container security scanning with Trivy
-   - Image pushing to Docker Hub
+### Infrastructure Pipeline (.circleci/infra-config.yml)
+- **Infrastructure Stage**: Terraform plan and apply with latest orb
+- **Deploy Stage**: Application deployment to EC2 via AWS SSM
+- **Health Checks**: Automated validation and monitoring setup
+- **ECR Integration**: Container registry with vulnerability scanning
 
-3. **Infrastructure Stage**:
-   - Terraform plan and apply
-   - Infrastructure validation
+### Pre-commit Hooks
+Local development includes automated code quality checks:
+- **Black**: Code formatting
+- **isort**: Import organization (black profile)
+- **flake8**: Code linting and style checking
+- **pytest**: Unit test execution
 
-4. **Deploy Stage**:
-   - Application deployment to EC2
-   - Health checks and validation
+Setup pre-commit hooks:
+```bash
+./scripts/setup-pre-commit.sh
+```
 
 ### Environment Variables Required
 
 Set these in CircleCI project settings:
 
 ```bash
-# Docker Hub
-DOCKERHUB_USERNAME
-DOCKERHUB_PASSWORD
-
 # AWS
 AWS_ACCESS_KEY_ID
 AWS_SECRET_ACCESS_KEY
 AWS_DEFAULT_REGION
 
+# ECR
+AWS_ACCOUNT_ID
+
 # Deployment
-EC2_HOST
 AWS_EC2_INSTANCE_ID
 ```
 
@@ -314,33 +390,50 @@ AWS_EC2_INSTANCE_ID
 
 ### AWS Resources Created
 
-1. **EC2 Instance**:
+1. **ECR Repository**:
+   - Private container registry
+   - Image vulnerability scanning enabled
+   - Lifecycle policies for image management
+   - Integration with CircleCI for automated pushes
+
+2. **EC2 Instance**:
    - Amazon Linux 2
    - Docker and Docker Compose pre-installed
    - Security group with HTTP/HTTPS/SSH access
    - Elastic IP for stable public address
+   - SSM Session Manager enabled
 
-2. **RDS MySQL Instance**:
+3. **RDS MySQL Instance**:
    - MySQL 8.0
    - Encrypted storage
    - Automated backups
    - Performance Insights enabled
    - Security group allowing access only from EC2
 
-3. **Security Groups**:
-   - EC2: HTTP (8000), HTTPS (443), SSH (22)
+4. **AWS Secrets Manager**:
+   - Secure credential storage
+   - Automatic password generation
+   - Runtime credential retrieval
+   - Rotation policies configured
+
+5. **Security Groups**:
+   - EC2: HTTP (8080), HTTPS (443), SSH (22)
    - RDS: MySQL (3306) from EC2 only
 
-4. **Networking**:
-   - Default VPC usage
-   - Multi-AZ subnet group for RDS
-   - Internet Gateway access for EC2
+6. **IAM Roles and Policies**:
+   - EC2 instance role with minimal required permissions
+   - Secrets Manager access
+   - SSM Session Manager access
+   - ECR image pull permissions
 
 ### Terraform Modules
 
-- **`modules/ec2`**: EC2 instance with user data script
+- **`modules/ecr`**: ECR repository with scanning and lifecycle policies
+- **`modules/ec2`**: EC2 instance with user data script for auto-deployment
 - **`modules/rds`**: RDS instance with security configurations
+- **`modules/secrets`**: AWS Secrets Manager for secure credential storage
 - **`modules/security`**: Security groups with least privilege
+- **`modules/iam`**: IAM roles and policies for secure access
 
 ## Monitoring & Observability
 
@@ -391,30 +484,52 @@ DD_SITE=datadoghq.com
 
 ## Deployment
 
+### Automated Deployment
+
+1. **Development Changes**:
+   Push to any branch to trigger the development pipeline:
+   ```bash
+   git push origin feature-branch
+   ```
+
+2. **Infrastructure Deployment**:
+   Trigger infrastructure pipeline via CircleCI API or manual approval
+
+3. **Production Deployment**:
+   Merge to `main` branch triggers both pipelines
+
 ### Manual Deployment
 
 1. **Build and push Docker image**:
    ```bash
-   docker build -t inscribe/customer-data-service:latest .
-   docker push inscribe/customer-data-service:latest
+   # Login to ECR
+   aws ecr get-login-password --region <region> | docker login --username AWS --password-stdin <account>.dkr.ecr.<region>.amazonaws.com
+   
+   # Build and tag image
+   docker build -t inscribe-customer-service:latest .
+   docker tag inscribe-customer-service:latest <account>.dkr.ecr.<region>.amazonaws.com/inscribe-customer-service:latest
+   
+   # Push to ECR
+   docker push <account>.dkr.ecr.<region>.amazonaws.com/inscribe-customer-service:latest
    ```
 
 2. **Deploy infrastructure**:
    ```bash
    cd terraform
+   terraform init
+   terraform plan
    terraform apply
    ```
 
-3. **SSH to EC2 and start application**:
+3. **Connect to EC2 and manage application**:
    ```bash
-   ssh ec2-user@<ec2-public-ip>
-   cd /opt/inscribe-app
-   ./start_app.sh
+   # Via SSM Session Manager
+   aws ssm start-session --target <instance-id>
+   
+   # Check application status
+   sudo docker ps
+   sudo docker logs inscribe-app
    ```
-
-### Automated Deployment
-
-Push to the `main` branch to trigger the CI/CD pipeline.
 
 ## Security Considerations
 
@@ -474,23 +589,61 @@ Push to the `main` branch to trigger the CI/CD pipeline.
 ## Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Run the test suite
-6. Submit a pull request
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Set up pre-commit hooks (`./scripts/setup-pre-commit.sh`)
+4. Make your changes and ensure they pass all checks
+5. Run the full test suite (`pytest tests/`)
+6. Commit your changes (pre-commit hooks will run automatically)
+7. Push to your fork (`git push origin feature/amazing-feature`)
+8. Create a Pull Request
 
-## License
+### Code Quality Standards
 
-This project is licensed under the MIT License.
+- **Black**: Code formatting (line length: 88)
+- **isort**: Import sorting with black profile
+- **flake8**: Linting and style checking
+- **pytest**: Minimum 80% test coverage
+- **Bandit**: Security scanning for vulnerabilities
 
-## Support
+### Documentation
 
-For questions or issues, please:
-1. Check the troubleshooting section
-2. Review the logs for error details
-3. Create an issue in the repository
+Documentation is organized in the `docs.bak/` directory:
+- API examples and guides
+- Deployment and configuration instructions
+- Security and compliance documentation
+- Troubleshooting guides
+
+
+
+#### Troubleshooting
+1. **Review logs** for error details:
+   ```bash
+   # Application logs
+   sudo docker logs inscribe-app
+   
+   # System logs
+   sudo tail -f /var/log/user-data.log
+   ```
+
+   ```bash
+   # Management commands (on EC2 instance):
+   sudo systemctl status inscribe-app    # Check service status
+   /opt/inscribe-app/manage.sh logs      # View application logs
+   /opt/inscribe-app/manage.sh health    # Check application health
+   ```
+
+2. **Run diagnostics**:
+   ```bash
+   # Test API health
+   ./scripts/secure_api_test.sh http://localhost:8080/health
+   
+   # Check database connectivity
+   docker exec -it inscribe-app python -c "from src.app.database.connection import get_db_connection; print('DB OK' if get_db_connection() else 'DB FAIL')"
+   ```
+3. **Create an issue** in the repository with:
+   - Clear description of the problem
+   - Steps to reproduce
+   - Relevant log excerpts
+   - Environment details
 
 ---
-
-**Built with dedication for Inscribe's mission of creating fair and efficient financial services.**

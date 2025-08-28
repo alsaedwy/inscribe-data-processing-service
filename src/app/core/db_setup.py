@@ -215,7 +215,7 @@ if __name__ == "__main__":
 
     success = run_database_setup()
     if success:
-        print("✅ Database setup completed successfully")
+        print("Database setup completed successfully")
     else:
-        print("❌ Database setup failed")
+        print("Database setup failed")
         exit(1)

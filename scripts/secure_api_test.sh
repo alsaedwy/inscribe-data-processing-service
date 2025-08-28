@@ -104,8 +104,8 @@ main() {
     # Get target URL
     if [ -z "$1" ]; then
         echo "Usage: $0 <API_URL>"
-        echo "Example: $0 http://localhost:8000"
-        echo "Example: $0 http://3.123.45.67:8000"
+        echo "Example: $0 http://localhost:8080"
+        echo "Example: $0 http://3.123.45.67:8080"
         exit 1
     fi
     
