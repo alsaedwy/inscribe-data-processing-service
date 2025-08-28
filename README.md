@@ -1,4 +1,4 @@
-# # Inscribe Data Processing Service
+# Inscribe Data Processing Service
 
 A secure, scalable microservice architecture for customer data management, built with FastAPI, containerized with Docker, and deployed on AWS infrastructure using Terraform.
 
@@ -57,9 +57,10 @@ This project demonstrates a complete microservice architecture with:
 ├── test-requirements.txt      # Testing dependencies
 ├── init.sql                   # Database initialization
 └── deploy.sh                  # Interactive deployment script
-```nscribe Data Processing Service
+```
 
-A secure, s**Free Tier Note**: This project is configured to use only AWS Free Tier resources. See `FREE_TIER_COMPLIANCE.md` for details on staying within free limits.alable microservice architecture for customer data management, built with FastAPI, containerized with Docker, and deployed on AWS infrastructure using Terraform.
+
+
 
 ## Architecture Overview
 
