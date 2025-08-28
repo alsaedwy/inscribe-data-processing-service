@@ -3,6 +3,7 @@ version: 2.1
 orbs:
   docker: circleci/docker@3.0.0
   aws-cli: circleci/aws-cli@5.4.1
+  terraform: circleci/terraform@3.7.0
 
 executors:
   python-executor:
@@ -346,27 +347,18 @@ jobs:
     steps:
       - checkout
       - aws-cli/setup
+      - terraform/install:
+          terraform_version: "1.9.5"
+      
+      - terraform/plan:
+          path: terraform
       
       - run:
-          name: Install Terraform
+          name: Apply Terraform (if on main branch)
           command: |
-            curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
-            sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
-            sudo apt-get update && sudo apt-get -y install terraform 
-      
-      - run:
-          name: Terraform Plan
-          command: |
-            cd terraform
-            terraform init
-            terraform plan -out=tfplan
-      
-      - run:
-          name: Terraform Apply (if on main branch)
-          command: |
-            cd terraform
             if [ "$CIRCLE_BRANCH" == "main" ]; then
-              terraform apply -auto-approve tfplan
+              cd terraform
+              terraform apply -auto-approve terraform.tfplan
             else
               echo "Skipping terraform apply - not on main branch"
             fi
